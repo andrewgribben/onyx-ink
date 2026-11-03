@@ -59,7 +59,7 @@ Needs JDK 17 (`JAVA_HOME`) and network access to `https://repo.boox.com/reposito
 - `adb devices` must list the device.
 - Deploy scripts (created in M0): `scripts/deploy-plugin.sh` (needs `BOOX_VAULT=/sdcard/<path-to-vault>`) and `scripts/deploy-companion.sh`.
 - After deploying the plugin, reload it in Obsidian (Settings → Community plugins) or restart Obsidian.
-- Logs: `adb logcat -s StrokeWebSocketServer OverlayShowingService` for the companion. For the plugin, add a diagnostics command; there's no remote devtools on the Boox by default.
+- Logs: `adb logcat -s StrokeWebSocketServer OverlayShowingService` for the companion. For the plugin, Obsidian's WebView is debuggable over adb: `scripts/boox-eval.mjs '<js>'` evaluates JS in it (e.g. read `app.workspace.activeLeaf.view.surface`, open the diagnostics command). Don't write into the owner's notes; test in a scratch `.ink.md` file and delete it. Injected `adb shell input stylus` strokes end in `pointercancel` and never reach the Onyx overlay, so they can't test the pen path.
 - Companion permissions: "Display over other apps", background activity allowed / not frozen (App Optimisation; if the icon shows a snowflake, long-press → Unfreeze).
 
 ## Code map (where to look)
