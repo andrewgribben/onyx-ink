@@ -12,7 +12,7 @@ Writing on an Ink Notebook page in Obsidian on a Boox Note Air 5C should feel li
 
 ### Non-goals (v1)
 
-- Writing directly over Markdown text in the normal editor. Ink stays on Ink Notebook pages, which can be embedded in notes with `![[Name.ink]]`.
+- Writing directly over Markdown text in the normal editor. Handwriting goes on ink pages or in inline ink blocks between paragraphs (section 4.10, milestone M5), never on top of typed text.
 - Excalidraw support. Upstream `ink-onyx-bridge` already does that.
 - iOS, desktop, or non-Onyx Android. The plugin must still work there, with the bridge inactive.
 - Any change to the `.ink.md` file format. Files must stay readable by upstream Ink Notebook.
@@ -166,6 +166,18 @@ Persist the settings through the existing `src/settings.ts` normaliser, with `on
 
 ---
 
+### 4.10 Inline ink blocks (M5)
+
+Owner decision (2026-11-03): handwriting should also be possible straight inside a note, between paragraphs, like the Ink plugin (Dale de Silva), while still being expandable to a full ink page.
+
+- A command and editor menu item **Insert handwriting block** creates a new ink file (same `.ink.md` format, in the usual ink folder) and inserts a block referencing it at the cursor.
+- The block is a live writing surface using the same pen engine (`InkSurface`, `InputRouter`, `ToolSession`), so undo, autosave, OCR and bridge replay work as on a full page.
+- Shape: page width, grows downwards as you write (no infinite canvas). Touch scrolls the note; the pen writes.
+- **Expand** opens the same file as a full ink page; edits show in both places.
+- Works in Live Preview and Reading view. In Source mode the block shows as its reference text.
+- Bridge: the block's rect is a region (section 4.7), so Onyx ink only appears inside it.
+- Reuse the existing `ink-figure`/embed rendering where possible; new code goes in new files.
+
 ## 5. Companion changes (`companion/`)
 
 1. **Identity**: `applicationId = "com.grib.onyxink"`, app name **Singularity Notebook Companion** (matches the plugin name). Keep the MIT `LICENSE` and add a copyright line. The Kotlin package name can stay for now.
@@ -246,6 +258,13 @@ Each milestone is a separate branch or PR-sized chunk with its own commits. Don'
 - A GitHub release with the APK and a plugin zip (`main.js`, `manifest.json`, `styles.css`), installable through BRAT.
 
 ---
+
+### M5: Inline ink blocks (section 4.10)
+- Insert a handwriting block in a note and write in it with the pen; strokes save to its own `.ink.md` file, readable by upstream Ink Notebook.
+- The block grows downwards as you write; finger scrolling of the note still works.
+- Expand opens the full page; changes made there show in the block, and the other way round.
+- With the bridge active, Onyx ink appears only inside the block and replays as in M2.
+- Live Preview and Reading view both work; nothing in the note's Markdown text changes except the inserted reference.
 
 ## 8. Testing
 

@@ -31,5 +31,8 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 ## M4: Polish and release
 - [ ] —
 
+## M5: Inline ink blocks
+- [ ] —
+
 ## Needs device check
 - (none open)

@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11-03: Inline ink blocks as milestone M5
+**Decision:** Add inline handwriting blocks inside notes (SPEC 4.10, M5), after M3. Blocks are page width and grow downwards. Each block is its own `.ink.md` file and can be expanded to a full page.
+**Why:** The owner wants to write directly in notes like the Ink plugin, without losing full pages. Blocks need M2 replay and M3 regions, so building them earlier would mean doing that work twice. Own files keep the format upstream-compatible.
+**Alternatives:** Use the Ink plugin (rejected: its own tldraw renderer redraws strokes, two engines). Infinite canvas blocks (rejected: more work, further from the page model). Build M5 before M2/M3 (rejected: rework).
+
 ## 2026-11-03: Fork replaces upstream, named Singularity Notebook
 **Decision:** The plugin is "Singularity Notebook" (id stays `ink-notebook-onyx`). It replaces upstream Ink Notebook rather than running alongside it.
 **Why:** The owner doesn't use upstream. Running both can't work without bigger upstream edits: both register view type `ink-notebook` and the `ink-notebook` / `ink-figure` code blocks (part of the file format), and both claim the same `.ink.md` files. A separate id still matters so Obsidian's updater never installs upstream over the fork.
