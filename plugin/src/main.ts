@@ -31,6 +31,8 @@ import { layoutTranscript } from "./core/layout";
 import { INK_FRONTMATTER_KEY, parseInkFile, serializeInkFile } from "./core/ink/codec";
 import type { InkFile, PageBackground } from "./core/ink/model";
 import type { ToolId } from "./ink/types";
+// onyx-ink: initialise the inert-by-default M1 companion connection.
+import { setupOnyx } from "./onyx/setup";
 
 export default class InkNotebookPlugin extends Plugin {
   settings!: InkSettings;
@@ -58,6 +60,8 @@ export default class InkNotebookPlugin extends Plugin {
 
   async onload(): Promise<void> {
     this.settings = loadSettings(await this.loadData());
+    // onyx-ink: diagnostics and bridge lifecycle are owned by this plugin instance.
+    setupOnyx(this);
     this.images = new VaultImages(this.app);
     this.papers = new PaperService(this);
     this.library = new LibraryService(this);

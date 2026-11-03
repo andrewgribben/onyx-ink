@@ -8,6 +8,8 @@ import type { ToolbarPosition } from "./ink/ui/toolbar";
 
 export type AzureApi = "auto" | "v4" | "v3.2";
 export type EinkMode = "auto" | "on" | "off";
+// onyx-ink: keep bridge behaviour opt-in by platform while allowing explicit enablement.
+export type OnyxBridgeMode = "auto" | "on" | "off";
 /** Chrome's low-latency canvas for the ink page; auto: not on e-ink screens. */
 export type LowLatencyMode = "auto" | "on" | "off";
 export type BookmarkPosition = "top" | "middle" | "bottom";
@@ -77,6 +79,9 @@ export interface InkSettings {
   fit: FitMode;
   toolbarPosition: ToolbarPosition;
   lowLatency: LowLatencyMode;
+  // onyx-ink: connection settings for the local Boox companion.
+  onyxBridge: OnyxBridgeMode;
+  onyxPort: number;
 
   // ---- display ----
   einkMode: EinkMode;
@@ -140,6 +145,9 @@ export const DEFAULT_SETTINGS: InkSettings = {
   fit: "page",
   toolbarPosition: "top",
   lowLatency: "auto",
+  // onyx-ink: default to Android-only automatic connection.
+  onyxBridge: "auto",
+  onyxPort: 8765,
 
   einkMode: "auto",
   bookmarkPosition: "top",
@@ -220,6 +228,9 @@ export function loadSettings(raw: unknown): InkSettings {
     toolbarPosition: oneOf(r.toolbarPosition, ["top", "bottom", "left", "right"] as const, d.toolbarPosition),
     // it was a switch, on by default: on becomes automatic (off on e-ink screens)
     lowLatency: r.lowLatency === false ? "off" : oneOf(r.lowLatency, ["auto", "on", "off"] as const, d.lowLatency),
+    // onyx-ink: invalid ports fall back instead of silently selecting another port.
+    onyxBridge: oneOf(r.onyxBridge, ["auto", "on", "off"] as const, d.onyxBridge),
+    onyxPort: typeof r.onyxPort === "number" && Number.isInteger(r.onyxPort) && r.onyxPort >= 1 && r.onyxPort <= 65535 ? r.onyxPort : d.onyxPort,
 
     einkMode: oneOf(r.einkMode, ["auto", "on", "off"] as const, d.einkMode),
     bookmarkPosition: oneOf(r.bookmarkPosition, ["top", "middle", "bottom"] as const, d.bookmarkPosition),

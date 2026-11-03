@@ -33,4 +33,13 @@ describe("recognition settings", () => {
     expect(turnedOff.askForPageName).toBe(false);
     expect(loadSettings(JSON.parse(JSON.stringify(turnedOff))).askForPageName).toBe(false);
   });
+
+  // onyx-ink: validate persisted companion settings at the normalisation boundary.
+  it("validates the Onyx bridge mode and port", () => {
+    expect(loadSettings({}).onyxBridge).toBe("auto");
+    expect(loadSettings({}).onyxPort).toBe(8765);
+    expect(loadSettings({ onyxBridge: "on", onyxPort: 9000 })).toMatchObject({ onyxBridge: "on", onyxPort: 9000 });
+    expect(loadSettings({ onyxBridge: "sometimes", onyxPort: 0 })).toMatchObject({ onyxBridge: "auto", onyxPort: 8765 });
+    expect(loadSettings({ onyxPort: 2.5 })).toMatchObject({ onyxPort: 8765 });
+  });
 });
