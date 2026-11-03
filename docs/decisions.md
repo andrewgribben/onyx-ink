@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11-03: Start M3 with some M2 device checks outstanding
+**Decision:** Move on to M3 while these M2 checks wait for the owner: the 200-stroke count, palm rejection, lasso and OCR, and the slow input after double-tap zoom. They stay open in `docs/progress.md`, and M2 isn't marked done until they pass.
+**Why:** The owner asked for work to carry on without waiting on device checks, with a commit at each stage so anything can be rolled back. The core of M2 is confirmed on the device: instant ink, matching, fallback, position within 1 px, no duplicates in normal use.
+**Alternatives:** Wait for the checks (rejected by the owner: it stalls work while they're away).
+
 ## 2026-11-03: Inline ink blocks as milestone M5
 **Decision:** Add inline handwriting blocks inside notes (SPEC 4.10, M5), after M3. Blocks are page width and grow downwards. Each block is its own `.ink.md` file and can be expanded to a full page.
 **Why:** The owner wants to write directly in notes like the Ink plugin, without losing full pages. Blocks need M2 replay and M3 regions, so building them earlier would mean doing that work twice. Own files keep the format upstream-compatible.
