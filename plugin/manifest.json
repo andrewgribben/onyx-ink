@@ -1,9 +1,9 @@
 {
   "id": "ink-notebook-onyx",
-  "name": "Ink Notebook (Onyx)",
+  "name": "Singularity Notebook",
   "version": "2.3.2",
   "minAppVersion": "1.8.7",
-  "description": "Onyx Ink fork of Ink Notebook with low-latency Boox pen input via the Onyx Ink Companion app. Handwritten notebooks like the Boox Notes app – a fast pen engine for e-ink tablets with pens, highlighter, erasers, lasso, shapes and paper templates – and your handwriting as text with Azure OCR, live diagrams, PDF annotation and papers from arXiv.",
+  "description": "Fork of Ink Notebook with low-latency Boox pen input via the Onyx Ink Companion app. Replaces Ink Notebook: uninstall it first. Handwritten notebooks like the Boox Notes app – a fast pen engine for e-ink tablets with pens, highlighter, erasers, lasso, shapes and paper templates – and your handwriting as text with Azure OCR, live diagrams, PDF annotation and papers from arXiv.",
   "author": "Stefan Mayer",
   "authorUrl": "https://github.com/stefanmayer06",
   "isDesktopOnly": false
