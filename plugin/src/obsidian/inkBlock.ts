@@ -9,10 +9,9 @@ import type { SurfaceSettings } from "../ink/types";
 import { einkActive, lowLatencyActive } from "./einkMode";
 import { INK_VIEW_TYPE } from "./inkView";
 import { registerInlineSurface, unregisterInlineSurface } from "../onyx/state";
-import { createInkBlockText, inkBlockNeedsGrowth } from "../onyx/inkBlock";
+import { createInkBlockText, inkBlockGrowTo, inkBlockHeight } from "../onyx/inkBlock";
 
 const SAVE_DELAY_MS = 1000;
-const GROW_BY = 400;
 
 export async function insertInkBlock(plugin: InkNotebookPlugin, editor: Editor, note: TFile): Promise<void> {
   const folder = await plugin.pairs.ensureInkFolder(note);
@@ -176,7 +175,8 @@ export class InkBlockChild extends MarkdownRenderChild {
   private changed(): void {
     if (!this.surface) return;
     this.showWriting();
-    if (inkBlockNeedsGrowth(this.surface.page)) this.surface.growPageBy(GROW_BY);
+    const grow = inkBlockGrowTo(this.surface.page) - this.surface.page.h;
+    if (grow > 0) this.surface.growPageBy(grow);
     this.dirty = true;
     this.revision++;
     this.resizePage();
@@ -190,7 +190,23 @@ export class InkBlockChild extends MarkdownRenderChild {
   private showWriting(): void {
     this.containerEl.addClass("is-writing");
     if (this.writingTimer !== null) window.clearTimeout(this.writingTimer);
-    this.writingTimer = window.setTimeout(() => this.containerEl.removeClass("is-writing"), 4000);
+    this.writingTimer = window.setTimeout(() => {
+      this.containerEl.removeClass("is-writing");
+      this.trim();
+    }, 4000);
+  }
+
+  /** After writing stops, shrink to the ink plus a little room (blocks grew in big steps and after erasing). */
+  private trim(): void {
+    if (!this.surface) return;
+    const shrink = this.surface.page.h - inkBlockHeight(this.surface.page);
+    if (shrink <= 0) return;
+    this.surface.growPageBy(-shrink);
+    this.resizePage();
+    this.dirty = true;
+    this.revision++;
+    if (this.timer !== null) window.clearTimeout(this.timer);
+    this.timer = window.setTimeout(() => void this.save().catch(() => undefined), SAVE_DELAY_MS);
   }
 
   private async loadFile(initial = false): Promise<void> {

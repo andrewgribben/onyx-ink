@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { parseInkFile } from "../src/core/ink/codec";
 import { emptyPage, makeStroke } from "../src/core/ink/model";
-import { createInkBlockText, inkBlockNeedsGrowth } from "../src/onyx/inkBlock";
+import { createInkBlockText, inkBlockGrowTo, inkBlockHeight } from "../src/onyx/inkBlock";
 
 describe("inline ink blocks", () => {
   it("creates a round-trippable 1000 by 600 page on the default paper with block frontmatter", () => {
@@ -18,14 +18,16 @@ describe("inline ink blocks", () => {
     expect(parsed.frontmatter).toMatch(/^ink-block: true$/m);
   });
 
-  it("grows when a stroke or text box reaches the bottom margin", () => {
+  it("grows near the bottom and sizes to the ink plus room", () => {
     const paper = { kind: "paper" as const, paper: { style: "blank" as const, spacing: "normal" as const,
       color: "white" as const, orientation: "portrait" as const } };
     const base = emptyPage(paper, 1000, 600);
-    const text = { id: "t", x: 0, y: 370, w: 100, h: 20, text: "x", size: 20, color: "#000000" };
-    expect(inkBlockNeedsGrowth({ ...base, texts: [text] })).toBe(false);
-    expect(inkBlockNeedsGrowth({ ...base, texts: [{ ...text, y: 390 }] })).toBe(true);
-    const stroke = makeStroke({ pen: "fountain", color: "#000000", width: 2, pts: new Float32Array([10, 410, 0.5]) });
-    expect(inkBlockNeedsGrowth({ ...base, strokes: [stroke] })).toBe(true);
+    const at = (y: number) => makeStroke({ pen: "fountain", color: "#000000", width: 2, pts: new Float32Array([10, y, 0.5]) });
+    expect(inkBlockHeight(base)).toBe(600);
+    expect(inkBlockGrowTo({ ...base, strokes: [at(300)] })).toBe(600);
+    expect(inkBlockGrowTo({ ...base, strokes: [at(500)] })).toBe(800);
+    expect(inkBlockHeight({ ...base, h: 1814, strokes: [at(1322)] })).toBe(1600);
+    expect(inkBlockGrowTo({ ...base, h: 1814, strokes: [at(1322)] })).toBe(1814);
   });
+
 });

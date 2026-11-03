@@ -732,7 +732,7 @@ export class InkSurface {
     }
   }
 
-  // onyx-ink: inline blocks extend their page without adding an undo step.
+  // onyx-ink: inline blocks grow or shrink their page (negative height) without adding an undo step.
   growPageBy(height: number): void {
     const page = this.page;
     this.applyDoc(replacePage(this.doc, { ...page, h: page.h + height }), "all");

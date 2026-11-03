@@ -26,12 +26,14 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 - [~] Instant Onyx ink, then a normal stroke in the right place (2026-11-03, Note Air 5C): owner confirms every stroke instant, stays put, at zoom 1 and when zoomed. Diagnostics: every stroke `matched`. Diagnostics read over adb: matched + fallbacks = 57 of 57 pen strokes (52 matched, 5 fallback while the companion was stopped), mean offset Onyx minus pointer -1.0 x, -0.9 y CSS px over 52 strokes (within 2 px). 13 orphans: Onyx ink drawn with the eraser tool, correctly dropped. **Open: input is slow after double-tap zoom.** Measured over adb: `renderAll` takes about 0.6 ms fit and 0.5 ms at 2x, and pointer latency and frame gaps are the same at both, so the page itself is not slower when zoomed. Cause not found yet; needs the owner to say whether the ink appears late or the page lags.
 - [x] Fallback (2026-11-03): companion stopped, strokes still appeared promptly and saved; after restart, strokes matched again.
 - [~] Eraser, lasso, undo/redo, autosave: undo/redo and autosave confirmed. The owner's stylus has no eraser end or side button, so those can't be tested on this device (unit-tested only). Toolbar eraser works but the overlay first draws its path as black ink; expected until M3 sends tool state to the companion. Lasso and OCR not yet checked.
+- [x] No duplicates (2026-11-03, read over adb): matched + fallbacks = 48 of 48 pen strokes, 0 orphans, mean offset -1.0 x, -0.9 y CSS px. Owner reports no lag after double-tap zoom now.
 - [~] No duplicates: owner reports clean writing with no doubles, strokes where written. The formal 200-stroke count from diagnostics is still to do.
 - [ ] Palm rejection.
 - Harness 2026-11-03: 48 pass, 1 fail (text tool typing), which also fails on upstream `f4b4ec4`, so not ours.
 
 ## M3: Region, pause and style
 Built 2026-11-03: companion `7b0329b` (0.3.0: region via `setLimitRect`, style, Global mode toggle in the notification, raw drawing off without a region), plugin `e6b5f2e` (`region.ts`, style sync). `npm run check` 297 tests; harness 49 pass, 0 fail.
+- [x] Owner confirmed 2026-11-03: no Onyx ink on the toolbar, menus or with the keyboard open.
 - [~] No Onyx ink outside the writing area. Checked over adb on the Note Air 5C (diagnostics event log): region is the page area below the toolbar (`[1,342,2481,1862]` physical px, toolbar excluded); region goes null for the command palette, the diagnostics modal, eraser tool, and the Text side. Needs device check with the pen: toolbar, menus, keyboard open, other panes.
 - [~] Region follows changes: open/close, flip to Text and back, zoom and reset, tool changes all re-send (seen in the event log). Page turns and split panes not yet checked.
 - [~] Style: pen sends `pen 1.9px #000000` (width x zoom x dpr); marker and zoom re-send. Needs a look on the device to see it roughly matches.
@@ -45,7 +47,7 @@ Built 2026-11-03: plugin `06ff7af` + fix, companion `83a51a7` (0.4.0, several re
 - [x] Owner confirmed on the Note Air 5C with the pen (2026-11-03): writing in a block stays where written after the pen-scroll fix (`18ea5f3`); block size, flush styling, default paper and bottom line accepted.
 - [~] Insert: command puts `![[<note> handwriting 1.ink]]` on its own line and creates the file with `ink-block: true`, one blank 1000 x 300 page; the block renders live with pen, eraser, undo, redo, Expand. A stroke (synthetic mouse events) saved to the file. Needs device check with the pen.
 - [~] Grows downwards: a stroke near the bottom grew the page to 600 and the block from 218 to 412 CSS px tall. Finger scrolling of the note: needs device check.
-- [~] Expand opened the same file in the ink view with the stroke. Edits there showing back in the block: needs device check.
+- [x] Expand and back (owner, 2026-11-03): edits on the full page show in the block.
 - [~] Bridge: the region follows the block (`[629,389,1885,798]`, then `[629,389,1885,1162]` after growing) with its controls excluded. Onyx ink inside the block with the pen: needs device check.
 - [ ] Reading view not checked yet.
 - Harness 2026-11-03 after M5: 49 pass, 0 fail; `npm run check` 301 tests.

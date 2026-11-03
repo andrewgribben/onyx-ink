@@ -181,7 +181,7 @@ Owner decision (2026-11-03): handwriting should also be possible straight inside
 Design (2026-11-03, chosen while the owner was away; see `docs/decisions.md`):
 - **Reference**: a normal embed `![[Name.ink]]` of a block ink file, so upstream Ink Notebook still shows the page as a preview. A block ink file is an ordinary `.ink.md` file with one extra frontmatter key `ink-block: true` (upstream ignores unknown keys). Only those files render as live blocks; embeds of normal ink pages stay previews.
 - **File**: created in the usual ink attachments folder, named `<note name> handwriting <n>.ink.md`. One page 1000 wide, 600 high, on the default paper for new pages (300 was too small to write in; owner 2026-11-03).
-- **Growth**: when a committed stroke or text box ends within 200 page units of the bottom, the page grows by 400. Growth is not an undo step.
+- **Height**: the page fits the ink plus 250 page units of room (at least 600, in steps of 50). It grows as soon as ink comes within 150 of the bottom, and shrinks back 4 s after writing stops (it used to grow in big steps and left too much empty space; owner 2026-11-03). Neither is an undo step.
 - **Controls**: a small row inside the block (`.ink-ui`): pen, eraser, undo, redo, Expand. The pen uses the plugin's remembered pen settings.
 - **Touch**: fingers scroll the note; the block scrolls it itself and keeps `touch-action: none`, because `pan-y` also let the pen scroll the note mid-stroke. The pen and mouse write. A faint dashed line marks the bottom of the block while writing.
 - **Saving**: the block writes its file about 1 s after a change (`serializeInkFile`) and reloads when the file changes elsewhere, unless it has unsaved strokes. Expand saves first, then opens the ink view.
