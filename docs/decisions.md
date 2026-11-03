@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11-03: Inline block design details (M5)
+**Decision:** Blocks are `![[Name.ink]]` embeds of `.ink.md` files marked `ink-block: true`. They have a small control row, ignore touch so the note scrolls, grow 300 page units at a time, and save about 1 s after a change. The region protocol gains an optional `rects` list. Details are in SPEC 4.10.
+**Why:** An embed keeps notes readable in upstream Ink Notebook, which shows a preview. A frontmatter flag stops ordinary embedded pages becoming writable by accident. A list of rects lets several blocks on screen get instant ink. Made while the owner was away, at their request to keep working. Each piece is a separate commit, so it's easy to change.
+**Alternatives:** A new `ink-block` code block (rejected: upstream would show raw text). Every embedded ink page writable (rejected: accidental edits). The full toolbar in each block (rejected: too heavy for a block in a note).
+
 ## 2026-11-03: Start M3 with some M2 device checks outstanding
 **Decision:** Move on to M3 while these M2 checks wait for the owner: the 200-stroke count, palm rejection, lasso and OCR, and the slow input after double-tap zoom. They stay open in `docs/progress.md`, and M2 isn't marked done until they pass.
 **Why:** The owner asked for work to carry on without waiting on device checks, with a commit at each stage so anything can be rolled back. The core of M2 is confirmed on the device: instant ink, matching, fallback, position within 1 px, no duplicates in normal use.

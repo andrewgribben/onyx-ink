@@ -178,6 +178,15 @@ Owner decision (2026-11-03): handwriting should also be possible straight inside
 - Bridge: the block's rect is a region (section 4.7), so Onyx ink only appears inside it.
 - Reuse the existing `ink-figure`/embed rendering where possible; new code goes in new files.
 
+Design (2026-11-03, chosen while the owner was away; see `docs/decisions.md`):
+- **Reference**: a normal embed `![[Name.ink]]` of a block ink file, so upstream Ink Notebook still shows the page as a preview. A block ink file is an ordinary `.ink.md` file with one extra frontmatter key `ink-block: true` (upstream ignores unknown keys). Only those files render as live blocks; embeds of normal ink pages stay previews.
+- **File**: created in the usual ink attachments folder, named `<note name> handwriting <n>.ink.md`. One blank page 1000 wide, 300 high.
+- **Growth**: when a committed stroke or text box ends within 120 page units of the bottom, the page grows by 300. Growth is not an undo step.
+- **Controls**: a small row inside the block (`.ink-ui`): pen, eraser, undo, redo, Expand. The pen uses the plugin's remembered pen settings.
+- **Touch**: fingers scroll the note (the block's surface ignores touch and uses `touch-action: pan-y`). The pen and mouse write.
+- **Saving**: the block writes its file about 1 s after a change (`serializeInkFile`) and reloads when the file changes elsewhere, unless it has unsaved strokes. Expand saves first, then opens the ink view.
+- **Bridge**: `region` gains an optional `rects` list (every visible block, plus the ink page when one is active); `rect` stays as their bounding box for older companions.
+
 ## 5. Companion changes (`companion/`)
 
 1. **Identity**: `applicationId = "com.grib.onyxink"`, app name **Singularity Notebook Companion** (matches the plugin name). Keep the MIT `LICENSE` and add a copyright line. The Kotlin package name can stay for now.
@@ -217,6 +226,7 @@ JSON text frames over `ws://127.0.0.1:8765`. Unknown `type`s and fields are igno
 ```jsonc
 {"type":"hello","v":2,"app":"ink-notebook-onyx","version":"x.y.z"}
 {"type":"region","rect":[l,t,r,b],"exclude":[[l,t,r,b], ...]}   // rect:null = disable
+// optional "rects":[[l,t,r,b], ...] = several writing areas (M5 inline blocks); rect is then their bounding box
 {"type":"style","kind":"pen"|"marker","widthPx":3.2,"color":"#000000"}
 {"type":"refresh","rect":[l,t,r,b]}
 {"type":"pause"} / {"type":"resume"}                             // v1-compatible
