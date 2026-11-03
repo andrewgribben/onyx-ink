@@ -33,6 +33,8 @@ import type { InkFile, PageBackground } from "./core/ink/model";
 import type { ToolId } from "./ink/types";
 // onyx-ink: initialise the inert-by-default M1 companion connection.
 import { setupOnyx } from "./onyx/setup";
+// onyx-ink: inline block creation reuses the normal attachment folder rule.
+import { insertInkBlock } from "./obsidian/inkBlock";
 
 export default class InkNotebookPlugin extends Plugin {
   settings!: InkSettings;
@@ -417,6 +419,12 @@ export default class InkNotebookPlugin extends Plugin {
       this.images.invalidate(file.path);
       return;
     }
+    // onyx-ink: a block save updates an open ink view when that view has no unsaved work.
+    if (this.pairs.isDrawing(file)) {
+      const view = findInkView(this, file);
+      if (view) void this.app.vault.cachedRead(file).then((data) => view.reloadExternalData(data))
+        .catch((error) => console.warn("Ink Notebook: could not reload an externally changed page", error));
+    }
     // typed notes shown on ink pages
     if (this.pairs.isTextPage(file)) {
       const drawing = this.pairs.drawingFor(file);
@@ -592,6 +600,21 @@ export default class InkNotebookPlugin extends Plugin {
         return true;
       },
     });
+    // onyx-ink: create a live inline block at the active Markdown editor cursor.
+    this.addCommand({
+      id: "insert-handwriting-block",
+      name: "Insert handwriting block",
+      icon: "pencil-line",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        const view = leaf?.view;
+        if (!(view instanceof MarkdownView) || !view.file) return false;
+        if (!checking) void insertInkBlock(this, view.editor, view.file).catch((error) => {
+          this.switcher.reportError("Could not insert the handwriting block", error);
+        });
+        return true;
+      },
+    });
     this.addCommand({
       id: "open-today-ink",
       name: "Open today's daily note on the ink page",
@@ -705,6 +728,13 @@ export default class InkNotebookPlugin extends Plugin {
               .setIcon("workflow")
               .onClick(() => void this.addMermaidDiagram({ code, name: mermaidName(code, file?.basename) ?? undefined })),
           );
+        }
+        // onyx-ink: offer block insertion from the Markdown editor menu.
+        if (file?.extension === "md") {
+          menu.addItem((item) => item.setTitle("Insert handwriting block").setIcon("pencil-line")
+            .onClick(() => void insertInkBlock(this, editor, file).catch((error) => {
+              this.switcher.reportError("Could not insert the handwriting block", error);
+            })));
         }
         if (!file || !this.pairs.canAddInk(file)) return;
         const leaf = info instanceof MarkdownView ? info.leaf : undefined;

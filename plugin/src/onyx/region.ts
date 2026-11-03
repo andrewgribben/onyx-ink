@@ -3,11 +3,11 @@
 import type { InkSurface } from "../ink/surface";
 import type { App, EventRef } from "obsidian";
 import { clientToScreen, webviewOffset } from "./coords";
-import { onyxBridge, onyxSettings } from "./state";
+import { inlineInkSurfaces, onyxBridge, onyxSettings } from "./state";
 
 export type RegionRect = { left: number; top: number; right: number; bottom: number };
 type RegionInput = {
-  surface: RegionRect | null;
+  surfaces: RegionRect[];
   excludes: RegionRect[];
   viewport: { width: number; height: number };
   modalOpen: boolean;
@@ -34,17 +34,26 @@ function intersect(a: RegionRect, b: RegionRect): RegionRect | null {
 
 export function decideRegion(input: RegionInput): {
   rect: [number, number, number, number];
+  rects: [number, number, number, number][];
   exclude: [number, number, number, number][];
 } | null {
   if (input.modalOpen || input.keyboardUp || input.focusedInput ||
-      (input.tool !== "pen" && input.tool !== "marker") || !input.surface) return null;
+      (input.tool !== "pen" && input.tool !== "marker") || input.surfaces.length === 0) return null;
   const viewport = { left: 0, top: 0, right: input.viewport.width, bottom: input.viewport.height };
-  const rect = intersect(input.surface, viewport);
-  if (!rect) return null;
+  const clipped = input.surfaces.map((rect) => intersect(rect, viewport)).filter((rect): rect is RegionRect => !!rect);
+  if (clipped.length === 0) return null;
+  const rects = clipped.map((rect) => physicalRect(rect, input.dpr, input.calibration));
+  const rect = [
+    Math.min(...rects.map((item) => item[0])),
+    Math.min(...rects.map((item) => item[1])),
+    Math.max(...rects.map((item) => item[2])),
+    Math.max(...rects.map((item) => item[3])),
+  ] as [number, number, number, number];
   return {
-    rect: physicalRect(rect, input.dpr, input.calibration),
-    exclude: input.excludes.map((item) => intersect(item, rect)).filter((item): item is RegionRect => !!item)
-      .map((item) => physicalRect(item, input.dpr, input.calibration)),
+    rect,
+    rects,
+    exclude: clipped.flatMap((surface) => input.excludes.map((item) => intersect(item, surface))
+      .filter((item): item is RegionRect => !!item).map((item) => physicalRect(item, input.dpr, input.calibration))),
   };
 }
 
@@ -96,6 +105,7 @@ export class OnyxRegion {
     window.visualViewport?.addEventListener("resize", this.refresh);
     document.addEventListener("focusin", this.refresh);
     document.addEventListener("focusout", this.refresh);
+    document.addEventListener("scroll", this.refresh, true);
     window.addEventListener("onyx-bridge-change", this.bridgeChanged);
     window.addEventListener("onyx-surface-change", this.refresh);
     this.observer = new MutationObserver(this.refresh);
@@ -118,6 +128,7 @@ export class OnyxRegion {
     window.visualViewport?.removeEventListener("resize", this.refresh);
     document.removeEventListener("focusin", this.refresh);
     document.removeEventListener("focusout", this.refresh);
+    document.removeEventListener("scroll", this.refresh, true);
     window.removeEventListener("onyx-bridge-change", this.bridgeChanged);
     window.removeEventListener("onyx-surface-change", this.refresh);
     onyxBridge()?.send({ type: "region", rect: null, exclude: [] });
@@ -160,21 +171,27 @@ export class OnyxRegion {
     const bridge = onyxBridge();
     if (!bridge || (bridge.state !== "connected" && bridge.state !== "active" && bridge.state !== "paused")) return;
     const leaf = this.app.workspace.activeLeaf;
-    const view = leaf?.view as { getViewType(): string; surface?: InkSurface } | undefined;
-    const surface = view?.getViewType() === "ink-notebook" && view.surface?.el.isConnected ? view.surface : null;
+    const view = leaf?.view as { getViewType(): string; surface?: InkSurface; containerEl?: HTMLElement } | undefined;
+    const activeSurface = view?.getViewType() === "ink-notebook" && view.surface?.el.isConnected ? view.surface : null;
+    const blocks = inlineInkSurfaces().filter((surface) => surface.el.isConnected &&
+      !!view?.containerEl?.contains(surface.el));
+    const surfaces = [...(activeSurface ? [activeSurface] : []), ...blocks];
+    const selected = blocks.length > 0
+      ? [...blocks].sort((a, b) => b.input.lastActivity - a.input.lastActivity)[0]
+      : activeSurface;
     const modalSelectors = ".modal-container, .menu, .suggestion-container, .popover, .prompt";
     const modalOpen = [...document.querySelectorAll(modalSelectors)].some(visible);
     const gap = screen.height - innerHeight > 120 || (!!visualViewport && innerHeight - visualViewport.height > 120);
-    const pauseReason = !surface ? "no visible ink surface" : modalOpen ? "modal or menu open" : gap ? "keyboard open" :
-      inputFocused() ? "text input focused" : surface.tools.tool !== "pen" && surface.tools.tool !== "marker" ?
-        `tool is ${surface.tools.tool}` : "";
+    const pauseReason = !selected ? "no visible ink surface" : modalOpen ? "modal or menu open" : gap ? "keyboard open" :
+      inputFocused() ? "text input focused" : selected.tools.tool !== "pen" && selected.tools.tool !== "marker" ?
+        `tool is ${selected.tools.tool}` : "";
     if (pauseReason !== this.lastPause) {
       this.lastPause = pauseReason;
       bridge.pauseReason = pauseReason;
     }
-    const bounds = surface?.el.getBoundingClientRect();
-    const rect = bounds && bounds.width > 0 && bounds.height > 0
-      ? { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom } : null;
+    const bounds = surfaces.map((surface) => surface.el.getBoundingClientRect());
+    const rects = bounds.filter((r) => r.width > 0 && r.height > 0)
+      .map((r) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom }));
     const excludes = [...document.querySelectorAll(".ink-ui")].filter(visible).map((el) => {
       const r = el.getBoundingClientRect();
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
@@ -182,11 +199,12 @@ export class OnyxRegion {
     const offset = webviewOffset({ width: screen.width, height: screen.height }, { width: innerWidth, height: innerHeight });
     const settings = onyxSettings();
     const calibration = { x: settings?.onyxCalibrationX ?? 0, y: settings?.onyxCalibrationY ?? 0 };
-    const decision = decideRegion({ surface: rect, excludes, viewport: { width: innerWidth, height: innerHeight }, modalOpen,
-      keyboardUp: gap, focusedInput: inputFocused(), tool: surface?.tools.tool ?? "", dpr: devicePixelRatio || 1,
+    const decision = decideRegion({ surfaces: rects, excludes, viewport: { width: innerWidth, height: innerHeight }, modalOpen,
+      keyboardUp: gap, focusedInput: inputFocused(), tool: selected?.tools.tool ?? "", dpr: devicePixelRatio || 1,
       calibration: { x: calibration.x - offset.x, y: calibration.y - offset.y } });
-    const message: { type: "region"; rect: [number, number, number, number] | null; exclude: [number, number, number, number][] } = decision
-      ? { type: "region" as const, rect: decision.rect, exclude: decision.exclude }
+    const message: { type: "region"; rect: [number, number, number, number] | null; rects?: [number, number, number, number][];
+      exclude: [number, number, number, number][] } = decision
+      ? { type: "region" as const, rect: decision.rect, rects: decision.rects, exclude: decision.exclude }
       : { type: "region", rect: null, exclude: [] };
     const encoded = sendOnChange(this.lastRegion, message, (value) => bridge.send(value as typeof message));
     if (encoded !== this.lastRegion) {
@@ -195,7 +213,7 @@ export class OnyxRegion {
       // Logged so diagnostics shows what was sent before the diagnostics modal itself paused the region.
       bridge.logEvent("region", decision ? `${JSON.stringify(message.rect)}, ${message.exclude.length} excluded` : `null (${pauseReason})`);
     }
-    const style = surface ? onyxStyle(surface) : null;
+    const style = selected ? onyxStyle(selected) : null;
     const styleText = style ? sendOnChange(this.lastStyle, style, (value) => bridge.send(value as typeof style)) : "";
     if (style && styleText !== this.lastStyle) {
       this.lastStyle = styleText;

@@ -80,11 +80,12 @@ export class InputRouter {
       if (!this.isUi(e.target)) e.preventDefault();
     });
     // keep Obsidian's own swipe gestures (sidebars, pull-down) away from the page
+    // onyx-ink: inline surfaces leave touch scrolling to the Markdown note.
     for (const name of ["touchstart", "touchmove", "touchend"]) {
       this.on(el, name, (e) => {
         if (this.isUi(e.target)) return;
         e.stopPropagation();
-        if (name === "touchmove" && e.cancelable) e.preventDefault();
+        if (name === "touchmove" && !this.s.settings.passTouch && e.cancelable) e.preventDefault();
       }, { passive: false });
     }
   }
@@ -192,6 +193,8 @@ export class InputRouter {
 
   private onDown(e: PointerEvent): void {
     if (this.isUi(e.target)) return;
+    // onyx-ink: pass inline-block touch pointers to the browser's scroll gesture.
+    if (this.s.settings.passTouch && e.pointerType === "touch") return;
     e.stopPropagation();
     const now = performance.now();
     if (e.pointerType === "touch") {
@@ -262,6 +265,8 @@ export class InputRouter {
   }
 
   private onMove(e: PointerEvent, raw: boolean): void {
+    // onyx-ink: block touch pointers pass through without cancelling note scroll.
+    if (this.s.settings.passTouch && e.pointerType === "touch") return;
     if (e.pointerType === "pen") this.lastPenTime = performance.now();
     // onyx-ink: keep palm rejection timing while buffering rather than drawing.
     if (this.onyx.move(e, raw, () => this.points(e))) {
@@ -295,6 +300,8 @@ export class InputRouter {
   }
 
   private onUp(e: PointerEvent): void {
+    // onyx-ink: touch-up belongs to the browser when the inline block passes touch through.
+    if (this.s.settings.passTouch && e.pointerType === "touch") return;
     if (this.mousePan && e.pointerId === this.mousePan.pointer) {
       this.mousePan = null;
       return;
@@ -327,6 +334,8 @@ export class InputRouter {
   }
 
   private onCancel(e: PointerEvent): void {
+    // onyx-ink: touch-cancel belongs to the browser when the inline block passes touch through.
+    if (this.s.settings.passTouch && e.pointerType === "touch") return;
     // onyx-ink: pointercancel is a commit in bridge mode, like the upstream pen path.
     if (this.onyx.end(e, null)) return;
     if (this.session && e.pointerId === this.sessionPointer) {
@@ -485,6 +494,8 @@ export class InputRouter {
   // ------------------------------------------------------------------ wheel
 
   private onWheel(e: WheelEvent): void {
+    // onyx-ink: let mouse-wheel events bubble from inline blocks to note scrolling.
+    if (this.s.settings.passTouch) return;
     if (this.isUi(e.target)) return;
     e.preventDefault();
     const rect = this.s.el.getBoundingClientRect();

@@ -2,9 +2,25 @@
 
 import type { InkSettings } from "../settings";
 import type { OnyxBridge } from "./bridge";
+import type { InkSurface } from "../ink/surface";
 
 let currentBridge: OnyxBridge | null = null;
 let currentSettings: InkSettings | null = null;
+const inlineSurfaces = new Set<InkSurface>();
+
+export function registerInlineSurface(surface: InkSurface): void {
+  inlineSurfaces.add(surface);
+  onyxSurfaceChanged();
+}
+
+export function unregisterInlineSurface(surface: InkSurface): void {
+  inlineSurfaces.delete(surface);
+  onyxSurfaceChanged();
+}
+
+export function inlineInkSurfaces(): InkSurface[] {
+  return [...inlineSurfaces];
+}
 
 export function onyxBridge(): OnyxBridge | null {
   return currentBridge;

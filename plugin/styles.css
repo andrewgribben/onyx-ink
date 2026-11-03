@@ -1820,6 +1820,50 @@ canvas.ink-preview-page {
 /* ---------- E-ink mode --------------------------------------------------- */
 /* Turned on automatically on Boox / e-ink devices (or manually in settings). */
 
+/* onyx-ink: let touch scroll the Markdown note while the inline surface ignores touch input. */
+.ink-block-touch {
+  touch-action: pan-y;
+}
+
+.ink-block {
+  position: relative;
+  width: 100%;
+}
+
+.ink-block-page > .ink-surface {
+  width: 100%;
+  height: 100%;
+}
+
+.ink-block-controls {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.ink-block-button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  place-items: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.ink-block-button.is-active {
+  background: var(--background-modifier-hover);
+}
+
+.ink-block-button:disabled {
+  opacity: 0.4;
+}
+
 /* Movement smears on e-ink screens, so e-ink mode turns off every animation
    and shadow – also Obsidian's, a theme's and other plugins'. Most of them do
    not use the --anim-duration-* or shadow variables, and their selectors are

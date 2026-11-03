@@ -129,6 +129,24 @@ describe("Onyx pen replay", () => {
     replay.destroy();
   });
 
+  it("matches a block A stroke in A and drops its orphan in block B", () => {
+    const { replay: a, socket } = create();
+    const b = new OnyxPenReplay({
+      el: { getBoundingClientRect: () => rect },
+      settings: { pressure: true },
+      tools: { tool: "pen" },
+      toPage: (x: number, y: number) => ({ x, y }),
+    } as any);
+    a.begin(event(), "pen", rect, point(100, 100));
+    a.end(event(), point(102, 101));
+    onyx(socket, 100);
+    vi.advanceTimersByTime(50);
+    expect(sessions.calls).toHaveLength(1);
+    expect(sessions.calls[0].first.cx).toBe(100);
+    a.destroy();
+    b.destroy();
+  });
+
   it("drops late Onyx frames after pointer fallback", () => {
     const { replay, socket, bridge } = create();
     replay.begin(event(), "pen", rect, point(10, 100));

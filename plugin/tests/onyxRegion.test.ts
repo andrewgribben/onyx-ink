@@ -8,16 +8,18 @@ const surface: RegionRect = { left: 10, top: 20, right: 210, bottom: 220 };
 const viewport = { width: 180, height: 190 };
 
 describe("Onyx region", () => {
-  it("clips the surface and toolbar exclusion to the viewport", () => {
-    expect(decideRegion({ surface, excludes: [{ left: 0, top: 0, right: 60, bottom: 45 }], viewport,
+  it("clips multiple surfaces and toolbar exclusions to the viewport", () => {
+    expect(decideRegion({ surfaces: [surface, { left: 150, top: 50, right: 220, bottom: 100 },
+      { left: 200, top: 200, right: 240, bottom: 240 }], excludes: [{ left: 0, top: 0, right: 60, bottom: 45 }], viewport,
       modalOpen: false, keyboardUp: false, focusedInput: false, tool: "pen", dpr: 1,
       calibration: { x: 0, y: 0 } })).toEqual({
-      rect: [10, 20, 180, 190], exclude: [[10, 20, 60, 45]],
+      rect: [10, 20, 180, 190], rects: [[10, 20, 180, 190], [150, 50, 180, 100]],
+      exclude: [[10, 20, 60, 45]],
     });
   });
 
   it.each(["modal", "keyboard", "focus", "tool", "missing"])("pauses for %s", (reason) => {
-    expect(decideRegion({ surface: reason === "missing" ? null : surface, excludes: [], viewport,
+    expect(decideRegion({ surfaces: reason === "missing" ? [] : [surface], excludes: [], viewport,
       modalOpen: reason === "modal", keyboardUp: reason === "keyboard", focusedInput: reason === "focus",
       tool: reason === "tool" ? "text" : "pen",
       dpr: 1.875, calibration: { x: 0, y: 0 } }))

@@ -68,6 +68,8 @@ export interface SurfaceSettings {
   fit: FitMode;
   /** Low-latency canvas (Chrome's "desynchronized" mode). */
   lowLatency: boolean;
+  // onyx-ink: let inline blocks leave touch gestures to the note scroller.
+  passTouch: boolean;
   /** White surroundings and no animations (e-ink). */
   eink: boolean;
 }
@@ -83,6 +85,7 @@ export const DEFAULT_SURFACE_SETTINGS: SurfaceSettings = {
   holdToShape: true,
   fit: "page",
   lowLatency: true,
+  passTouch: false,
   eink: false,
 };
 

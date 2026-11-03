@@ -60,6 +60,18 @@ export class PairManager {
     return cleanSubfolder(this.inkSubfolder());
   }
 
+  // onyx-ink: inline ink blocks share the normal drawing attachment folder rule.
+  inkFolderFor(file: TFile): string {
+    return inkFolderOf(folderOf(file), this.sub);
+  }
+
+  // onyx-ink: block creation needs the same lazy attachment-folder setup as paired pages.
+  async ensureInkFolder(file: TFile): Promise<string> {
+    const folder = this.inkFolderFor(file);
+    await this.ensureFolder(folder);
+    return folder;
+  }
+
   private fileAt(path: string): TFile | null {
     const f = this.app.vault.getAbstractFileByPath(normalizePath(path));
     return f instanceof TFile ? f : null;

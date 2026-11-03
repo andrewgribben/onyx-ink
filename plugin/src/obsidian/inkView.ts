@@ -218,6 +218,14 @@ export class InkView extends TextFileView {
     return text;
   }
 
+  // onyx-ink: reload block edits only when this view has no unsaved ink of its own.
+  reloadExternalData(data: string): void {
+    // Our own saves come back as modify events too; reloading them would reset the page under the pen.
+    if (!this.ready || inkDataOf(data) === this.savedInk) return;
+    if (inkDataOf(serializeInkFile(this.frontmatter, this.surface.file)) !== this.savedInk) return;
+    this.setViewData(data, false);
+  }
+
   /** Another file is about to be shown (setViewData follows): stop what is running. */
   clear(): void {
     this.cancelSave();
