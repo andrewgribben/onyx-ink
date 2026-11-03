@@ -41,9 +41,16 @@ Built 2026-11-03: companion `7b0329b` (0.3.0: region via `setLimitRect`, style, 
 - [ ] —
 
 ## M5: Inline ink blocks
-- [ ] —
+Built 2026-11-03: plugin `06ff7af` + fix, companion `83a51a7` (0.4.0, several region rects). Tested over adb on the Note Air 5C in a scratch note (deleted afterwards), Live Preview:
+- [~] Insert: command puts `![[<note> handwriting 1.ink]]` on its own line and creates the file with `ink-block: true`, one blank 1000 x 300 page; the block renders live with pen, eraser, undo, redo, Expand. A stroke (synthetic mouse events) saved to the file. Needs device check with the pen.
+- [~] Grows downwards: a stroke near the bottom grew the page to 600 and the block from 218 to 412 CSS px tall. Finger scrolling of the note: needs device check.
+- [~] Expand opened the same file in the ink view with the stroke. Edits there showing back in the block: needs device check.
+- [~] Bridge: the region follows the block (`[629,389,1885,798]`, then `[629,389,1885,1162]` after growing) with its controls excluded. Onyx ink inside the block with the pen: needs device check.
+- [ ] Reading view not checked yet.
+- Harness 2026-11-03 after M5: see commit log; `npm run check` 301 tests.
 
 ## Needs device check
 Owner checks, batched (2026-11-03):
 - M2: 200 quick strokes then diagnostics (`matched + fallbacks = N of N`); palm rejection; lasso; OCR; slow input after double-tap zoom (ink late, or page lag?).
+- M5: in any note, run "Insert handwriting block", write in it with the pen, scroll the note with a finger, tap Expand, write on the full page, go back.
 - M3: write on the toolbar, a menu, with the keyboard up and in a split pane: no Onyx ink there. Marker and zoomed pen overlay width look about right. Global mode (notification button) gives full-screen ink in another app.
