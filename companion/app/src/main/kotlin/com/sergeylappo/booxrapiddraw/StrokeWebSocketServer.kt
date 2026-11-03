@@ -53,15 +53,16 @@ class StrokeWebSocketServer(port: Int = 8765) : WebSocketServer(InetSocketAddres
     override fun onMessage(conn: WebSocket, message: String?) {
         if (message == null || message.length > 64 * 1024) return // onyx-ink: ignore oversized messages
         try {
-            val type = JSONObject(message).optString("type")
-            if (type.isNotEmpty()) onCommand?.invoke(type)
+            val json = JSONObject(message)
+            val type = json.optString("type")
+            if (type.isNotEmpty()) onCommand?.invoke(type, json) // onyx-ink: pass the message for region/style
         } catch (e: Exception) {
             Log.w(TAG, "bad message: $message")
         }
     }
 
-    /** Called (on the WS thread) with "pause" / "resume" from the Obsidian plugin. */
-    @Volatile var onCommand: ((String) -> Unit)? = null
+    /** Called (on the WS thread) with each plugin message's type and body ("pause", "resume", "region", "style"). */
+    @Volatile var onCommand: ((String, JSONObject) -> Unit)? = null
 
     /** Overlay window's position on screen in physical px; sent with every stroke. */
     @Volatile var originX: Int = 0

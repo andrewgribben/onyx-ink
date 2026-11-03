@@ -41,6 +41,7 @@ class OverlayShowingService : Service() {
     private lateinit var overlayPaintingView: SurfaceView
 
     private var wsServer: StrokeWebSocketServer? = null
+    private lateinit var control: InkControl // onyx-ink: region, style, Global mode
     private val currentStrokePoints = mutableListOf<FloatArray>()
     private val listStrokePoints = mutableListOf<FloatArray>()
     private val strokeLock = Any()
@@ -50,6 +51,7 @@ class OverlayShowingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        control = InkControl(getSharedPreferences("onyx_ink", MODE_PRIVATE)) // onyx-ink
 
         createForegroundNotification()
 
@@ -71,11 +73,12 @@ class OverlayShowingService : Service() {
             wsServer?.screenWidth = real.widthPixels
             wsServer?.screenHeight = real.heightPixels
             wsServer?.appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
-            wsServer?.onCommand = { cmd ->
+            wsServer?.onCommand = { cmd, msg ->
                 mainHandler.post {
                     when (cmd) {
                         "pause" -> pauseRawDrawing()
                         "resume" -> { paused = false; reinitRawDrawing() }
+                        else -> if (control.handle(cmd, msg)) reinitRawDrawing() // onyx-ink: region, style
                     }
                 }
             }
@@ -90,6 +93,12 @@ class OverlayShowingService : Service() {
             Toast.makeText(this, "Terminating Rapid Draw Service...", Toast.LENGTH_SHORT).show()
             stopSelf()
             return START_NOT_STICKY // Prevents service from being recreated
+        }
+        if (intent?.action == "GLOBAL") { // onyx-ink: Global mode toggle from the notification
+            control.globalMode = !control.globalMode
+            createForegroundNotification()
+            reinitRawDrawing()
+            return START_STICKY
         }
 
         Toast.makeText(this, "Starting Rapid Draw Service", Toast.LENGTH_SHORT).show()
@@ -115,11 +124,21 @@ class OverlayShowingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // onyx-ink: Global mode toggle; off means Onyx ink only inside the plugin's region.
+        val globalIntent = PendingIntent.getService(
+            this,
+            1,
+            Intent(this, OverlayShowingService::class.java).apply { action = "GLOBAL" },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val global = if (control.globalMode) "on" else "off"
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.overlay_service_notification_content_title))
-            .setContentText(getString(R.string.overlay_service_notification_content))
+            .setContentText("Global mode $global") // onyx-ink
             .setSmallIcon(R.drawable.rapid_draw)
             .addAction(NotificationCompat.Action.Builder(null, "Stop", pendingIntent).build())
+            .addAction(NotificationCompat.Action.Builder(null, "Global mode ${if (control.globalMode) "off" else "on"}", globalIntent).build())
             .build()
 
         //noinspection InlinedApi (Seems to work, IDK why, maybe older Android versions might not support this)
@@ -188,10 +207,17 @@ class OverlayShowingService : Service() {
             wsServer?.broadcastState("enabled") // onyx-ink: v2 state
             val bounds = Rect()
             overlayPaintingView.getLocalVisibleRect(bounds)
-            touchHelper.setStrokeColor(Color.BLACK)
-            touchHelper.setStrokeStyle(TouchHelper.STROKE_STYLE_PENCIL)
+            // onyx-ink: plugin style and region; without a region (and Global mode off) the pen goes to apps as normal.
+            touchHelper.setStrokeColor(control.color)
+            touchHelper.setStrokeStyle(control.style)
             if (!rawOpened) { touchHelper.openRawDrawing(); rawOpened = true }
-            touchHelper.setStrokeWidth(STROKE_WIDTH).setLimitRect(bounds, listOf())
+            val (limit, exclude) = control.limit(bounds, loc[0], loc[1])
+            if (!control.wanted || limit.isEmpty) {
+                touchHelper.setRawDrawingEnabled(false)
+                touchHelper.setRawInputReaderEnable(false)
+                return
+            }
+            touchHelper.setStrokeWidth(control.widthPx).setLimitRect(limit, exclude)
             touchHelper.setRawInputReaderEnable(true)
             touchHelper.setRawDrawingEnabled(true)
         } catch (e: Exception) {
@@ -214,7 +240,7 @@ class OverlayShowingService : Service() {
     // pen reader; re-claim it periodically while not paused.
     private val watchdog = object : Runnable {
         override fun run() {
-            if (!paused) {
+            if (!paused && control.wanted) { // onyx-ink: off on purpose without a region
                 try {
                     if (!touchHelper.isRawDrawingInputEnabled) {
                         wsServer?.broadcastState("stolen") // onyx-ink: v2 state
@@ -291,7 +317,7 @@ class OverlayShowingService : Service() {
         }
 
         override fun onPenActive(point: TouchPoint?) {
-            touchHelper.setRawDrawingEnabled(true)
+            if (!paused && control.wanted) touchHelper.setRawDrawingEnabled(true) // onyx-ink: respect pause and region
         }
 
         override fun onRawDrawingTouchPointListReceived(touchPointList: TouchPointList) {

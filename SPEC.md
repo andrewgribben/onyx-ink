@@ -204,6 +204,8 @@ JSON text frames over `ws://127.0.0.1:8765`. Unknown `type`s and fields are igno
  "screen":{"w":1860,"h":2480},"pressureMax":4096}
 
 {"type":"state","v":2,"raw":"enabled"|"paused"|"stolen"|"disabled"}
+// "enabled" = the pen reader is ready; ink only appears inside the last region (or anywhere in Global mode).
+// "paused" = an explicit pause command. A null region is not a pause.
 
 {"type":"stroke","v":2,"id":42,"w":1860,"h":2480,"ox":0,"oy":0,
  "pts":[[x,y,pressure,timestampMs], ...]}
