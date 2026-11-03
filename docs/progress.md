@@ -42,6 +42,7 @@ Built 2026-11-03: companion `7b0329b` (0.3.0: region via `setLimitRect`, style, 
 
 ## M5: Inline ink blocks
 Built 2026-11-03: plugin `06ff7af` + fix, companion `83a51a7` (0.4.0, several region rects). Tested over adb on the Note Air 5C in a scratch note (deleted afterwards), Live Preview:
+- [x] Owner confirmed on the Note Air 5C with the pen (2026-11-03): writing in a block stays where written after the pen-scroll fix (`18ea5f3`); block size, flush styling, default paper and bottom line accepted.
 - [~] Insert: command puts `![[<note> handwriting 1.ink]]` on its own line and creates the file with `ink-block: true`, one blank 1000 x 300 page; the block renders live with pen, eraser, undo, redo, Expand. A stroke (synthetic mouse events) saved to the file. Needs device check with the pen.
 - [~] Grows downwards: a stroke near the bottom grew the page to 600 and the block from 218 to 412 CSS px tall. Finger scrolling of the note: needs device check.
 - [~] Expand opened the same file in the ink view with the stroke. Edits there showing back in the block: needs device check.
