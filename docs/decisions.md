@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11-03: Fork replaces upstream, named Singularity Notebook
+**Decision:** The plugin is "Singularity Notebook" (id stays `ink-notebook-onyx`). It replaces upstream Ink Notebook rather than running alongside it.
+**Why:** The owner doesn't use upstream. Running both can't work without bigger upstream edits: both register view type `ink-notebook` and the `ink-notebook` / `ink-figure` code blocks (part of the file format), and both claim the same `.ink.md` files. A separate id still matters so Obsidian's updater never installs upstream over the fork.
+**Alternatives:** Reuse id `ink-notebook` (rejected: upstream updates would overwrite the fork). Own view type plus skipped duplicate registrations so both can run (rejected: work for a case nobody needs).
+
 ## 2026-11-03: Replay Onyx strokes through `ToolSession`, not swap-after
 **Decision:** In bridge mode, Ink Notebook doesn't draw pen or marker ink live. It buffers pointer points, then replays the matching Onyx stroke (or the buffered pointer points as a fallback) through `createSession().move().up()`.
 **Why:** Upstream `ink-onyx-bridge` lets Excalidraw draw a laggy stroke and then swaps it out. That means two renders and extra e-ink refreshes, and the late-sweep heuristics can delete the wrong strokes. Ink Notebook has a clean `ToolSession` API, so replaying gives exactly one committed stroke, through the normal path (undo, autosave, OCR).

@@ -62,7 +62,7 @@ Both directories were added with `git subtree --squash`. Section 9 covers pullin
 │  ──────┼─────────────────────────────────────────┼─────────────────  │
 │        │                                         ▼                   │
 │  Obsidian (WebView)                                                  │
-│   plugin/ (Ink Notebook, Onyx edition)                               │
+│   plugin/ (Singularity Notebook, fork of Ink Notebook)               │
 │     src/onyx/bridge.ts   WS client, handshake, reconnect             │
 │     src/onyx/coords.ts   screen px ⇄ client CSS px (pure)            │
 │     src/onyx/matcher.ts  pair pointer stroke ⇄ Onyx stroke (pure)    │
@@ -77,7 +77,7 @@ Both directories were added with `git subtree --squash`. Section 9 covers pullin
 
 ### 4.1 Identity
 
-- `manifest.json`: `id: "ink-notebook-onyx"`, `name: "Ink Notebook (Onyx)"`. Keep `author` and add a fork note to `description`. This lets the fork sit next to upstream without clashing.
+- `manifest.json`: `id: "ink-notebook-onyx"`, `name: "Singularity Notebook"`. Keep `author` and add a fork note to `description`. The fork **replaces** upstream Ink Notebook: uninstall upstream first; running both at once is not supported (they share view type, code block processors and file handling). The own id stops Obsidian's updater installing upstream releases over the fork.
 - Keep `LICENSE` (AGPL) and the upstream copyright. Add a "Modified by" notice to the README and to the header of every new file.
 - `.ink.md` reading and writing must stay byte-compatible with upstream.
 
@@ -218,7 +218,7 @@ Each milestone is a separate branch or PR-sized chunk with its own commits. Don'
 - `cd plugin && npm ci && npm run check` passes (typecheck, vitest, production build).
 - `cd companion && ./gradlew assembleDebug` succeeds (JDK 17; AGP 8.7.2 / Gradle 8.9; Onyx Maven repo reachable).
 - `scripts/deploy-plugin.sh` (adb push to the vault on the Boox, using `BOOX_VAULT`) and `scripts/deploy-companion.sh` (`installDebug`) exist and work.
-- Identity renames done (sections 4.1 and 5.1). Both plugins can be enabled at once without clashing.
+- Identity renames done (sections 4.1 and 5.1). The fork installs and loads in place of upstream Ink Notebook (upstream uninstalled).
 
 ### M1: Protocol and connection (no behaviour change)
 - `protocol.ts`, `coords.ts` and `matcher.ts` have unit tests in `plugin/tests/onyx*.test.ts`, covering v1 and v2 parsing, the round trip and edge cases of coordinate mapping, and every matcher outcome.
