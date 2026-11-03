@@ -3,6 +3,8 @@
 # Usage: BOOX_VAULT=/sdcard/<path-to-vault> scripts/deploy-plugin.sh
 # Set ANDROID_SERIAL=<serial> if adb lists the Boox more than once (USB plus wireless).
 set -euo pipefail
+# Machine-specific JAVA_HOME, ANDROID_HOME, BOOX_VAULT, ANDROID_SERIAL; see scripts/local.env.example.
+[ -f "$(dirname "$0")/local.env" ] && . "$(dirname "$0")/local.env"
 : "${BOOX_VAULT:?set BOOX_VAULT=/sdcard/<path-to-vault>}"
 DEST="$BOOX_VAULT/.obsidian/plugins/ink-notebook-onyx"
 cd "$(dirname "$0")/../plugin"

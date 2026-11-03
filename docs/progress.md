@@ -10,6 +10,8 @@ Tick acceptance criteria from SPEC section 7 as they pass. Add a date and short 
 - [x] Identity renames (2026-11-03): plugin manifest id `ink-notebook-onyx`, name "Singularity Notebook", fork note in description and README; e2e scripts updated to the new id. Companion `applicationId = com.grib.onyxink`, label "Singularity Notebook Companion" (checked with `aapt dump badging`), copyright line added to LICENSE.
 - [x] Fork replaces upstream (SPEC changed 2026-11-03, owner decision; see decisions.md). Owner confirmed on the Boox (2026-11-03): "Singularity Notebook" enabled in vault `/sdcard/Notes/Notes`, an ink page was written, saved and reopened. Pen lag is unchanged from upstream, as expected before M2.
 
+Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; template `scripts/local.env.example`), and `companion/local.properties` (gitignored) sets `sdk.dir`. Both scripts checked with an empty environment.
+
 ## M1: Protocol and connection
 - [ ] —
 
