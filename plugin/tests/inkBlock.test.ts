@@ -6,13 +6,13 @@ import { emptyPage, makeStroke } from "../src/core/ink/model";
 import { createInkBlockText, inkBlockNeedsGrowth } from "../src/onyx/inkBlock";
 
 describe("inline ink blocks", () => {
-  it("creates a round-trippable blank 1000 by 600 page with block frontmatter", () => {
+  it("creates a round-trippable 1000 by 600 page on the default paper with block frontmatter", () => {
     const parsed = parseInkFile(createInkBlockText());
     expect(parsed.doc.pages).toHaveLength(1);
     expect(parsed.doc.pages[0]).toMatchObject({
       w: 1000,
       h: 600,
-      bg: { kind: "paper", paper: { style: "blank" } },
+      bg: { kind: "paper", paper: { style: "lined" } },
     });
     expect(parsed.frontmatter).toMatch(/^---\n[\s\S]*^ink-notebook: 1$/m);
     expect(parsed.frontmatter).toMatch(/^ink-block: true$/m);

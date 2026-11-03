@@ -19,7 +19,7 @@ export async function insertInkBlock(plugin: InkNotebookPlugin, editor: Editor, 
   let file: TFile | null = null;
   for (let n = 1; !file; n++) {
     const path = normalizePath(joinPath(folder, `${note.basename} handwriting ${n}.ink.md`));
-    if (!plugin.app.vault.getAbstractFileByPath(path)) file = await plugin.app.vault.create(path, createInkBlockText());
+    if (!plugin.app.vault.getAbstractFileByPath(path)) file = await plugin.app.vault.create(path, createInkBlockText(plugin.settings.paper));
   }
   await indexed(plugin, file);
   const cursor = editor.getCursor();
@@ -175,6 +175,7 @@ export class InkBlockChild extends MarkdownRenderChild {
 
   private changed(): void {
     if (!this.surface) return;
+    this.showWriting();
     if (inkBlockNeedsGrowth(this.surface.page)) this.surface.growPageBy(GROW_BY);
     this.dirty = true;
     this.revision++;
@@ -182,6 +183,14 @@ export class InkBlockChild extends MarkdownRenderChild {
     this.updateControls();
     if (this.timer !== null) window.clearTimeout(this.timer);
     this.timer = window.setTimeout(() => void this.save().catch(() => undefined), SAVE_DELAY_MS);
+  }
+
+  /** Faint bottom line while writing, gone 4 s after the last change. */
+  private writingTimer: number | null = null;
+  private showWriting(): void {
+    this.containerEl.addClass("is-writing");
+    if (this.writingTimer !== null) window.clearTimeout(this.writingTimer);
+    this.writingTimer = window.setTimeout(() => this.containerEl.removeClass("is-writing"), 4000);
   }
 
   private async loadFile(initial = false): Promise<void> {

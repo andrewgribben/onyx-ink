@@ -105,7 +105,8 @@ export class OnyxPenReplay {
       const settings = onyxSettings();
       if (!settings) return;
       const waiting = [...this.waiting.values()].sort((a, b) => b.downTime - a.downTime)[0];
-      const points = this.convert(stroke, waiting?.downTime ?? performance.now(), waiting?.durationMs);
+      // Map with the surface's position at pen-down: the note may have scrolled since (inline blocks).
+      const points = this.convert(stroke, waiting?.downTime ?? performance.now(), waiting?.durationMs, waiting?.rect);
       const onyx: OnyxStroke = { bbox: clientBBox(points), arrivalTime: performance.now(), stroke, points };
       this.matcher ??= new StrokeMatcher(settings.onyxMatchWindowMs, settings.onyxFallbackMs);
       this.matcher.addOnyxStroke(onyx);
@@ -113,7 +114,7 @@ export class OnyxPenReplay {
     });
   }
 
-  private convert(stroke: Parameters<typeof onyxToClientPoints>[0], t0: number, durationMs?: number): InputPt[] {
+  private convert(stroke: Parameters<typeof onyxToClientPoints>[0], t0: number, durationMs?: number, rect?: DOMRect): InputPt[] {
     const settings = onyxSettings();
     const dpr = window.devicePixelRatio || 1;
     const offset = webviewOffset({ width: screen.width, height: screen.height }, { width: innerWidth, height: innerHeight });
@@ -125,7 +126,7 @@ export class OnyxPenReplay {
       hello: onyxBridge()?.hello ?? null,
       t0,
       durationMs,
-      toPage: (cx, cy) => this.s.toPage(cx, cy),
+      toPage: (cx, cy) => this.s.toPage(cx, cy, rect),
     });
   }
 

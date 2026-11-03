@@ -1820,9 +1820,10 @@ canvas.ink-preview-page {
 /* ---------- E-ink mode --------------------------------------------------- */
 /* Turned on automatically on Boox / e-ink devices (or manually in settings). */
 
-/* onyx-ink: let touch scroll the Markdown note while the inline surface ignores touch input. */
-.ink-block-touch {
-  touch-action: pan-y;
+/* onyx-ink: inline blocks keep touch-action: none (pan-y would let the pen scroll the note mid-stroke);
+   the finger scrolls the note through TouchScroll. A faint line marks the bottom while writing. */
+.ink-block.is-writing .ink-block-page {
+  border-bottom: 1px dashed var(--background-modifier-border);
 }
 
 .ink-block {
