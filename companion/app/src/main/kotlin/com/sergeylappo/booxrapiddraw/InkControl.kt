@@ -10,8 +10,8 @@ import org.json.JSONObject
 
 /** What the plugin asked for. Only touched on the main thread. */
 class InkControl(private val prefs: SharedPreferences) {
-    /** Writing area and excluded rects, physical screen px. Null = no plugin region. */
-    var region: Rect? = null
+    /** Writing areas and excluded rects, physical screen px. Empty = no plugin region. */
+    var regions: List<Rect> = emptyList()
         private set
     var exclude: List<Rect> = emptyList()
         private set
@@ -30,14 +30,15 @@ class InkControl(private val prefs: SharedPreferences) {
         }
 
     /** Raw drawing should run: a plugin region is set, or Global mode is on. */
-    val wanted get() = region != null || globalMode
+    val wanted get() = regions.isNotEmpty() || globalMode
 
     /** Applies a `region` or `style` message. Returns true when raw drawing must be re-applied. */
     fun handle(type: String, msg: JSONObject): Boolean = when (type) {
         "region" -> {
-            region = rect(msg.optJSONArray("rect"))
-            val list = msg.optJSONArray("exclude") ?: JSONArray()
-            exclude = (0 until list.length()).mapNotNull { rect(list.optJSONArray(it)) }
+            // "rects" (M5 inline blocks) wins over the single "rect"; rect null means no region.
+            val single = rect(msg.optJSONArray("rect"))
+            regions = if (single == null) emptyList() else rects(msg.optJSONArray("rects")).ifEmpty { listOf(single) }
+            exclude = rects(msg.optJSONArray("exclude"))
             true
         }
         "style" -> {
@@ -49,13 +50,14 @@ class InkControl(private val prefs: SharedPreferences) {
         else -> false
     }
 
-    /** Limit and exclude rects in overlay-local px for an overlay at (ox, oy) whose visible bounds are `full`. */
-    fun limit(full: Rect, ox: Int, oy: Int): Pair<Rect, List<Rect>> {
-        val r = region ?: return Pair(full, emptyList())
-        val local = Rect(r.left - ox, r.top - oy, r.right - ox, r.bottom - oy)
-        if (!local.intersect(full)) local.setEmpty()
+    /** Limit and exclude rects in overlay-local px for an overlay at (ox, oy) whose visible bounds are `full`. Empty limit = draw nowhere. */
+    fun limit(full: Rect, ox: Int, oy: Int): Pair<List<Rect>, List<Rect>> {
+        if (regions.isEmpty()) return Pair(listOf(full), emptyList())
+        val local = regions.mapNotNull { r -> Rect(r.left - ox, r.top - oy, r.right - ox, r.bottom - oy).takeIf { it.intersect(full) } }
         return Pair(local, exclude.map { Rect(it.left - ox, it.top - oy, it.right - ox, it.bottom - oy) })
     }
+
+    private fun rects(a: JSONArray?): List<Rect> = if (a == null) emptyList() else (0 until a.length()).mapNotNull { rect(a.optJSONArray(it)) }
 
     private fun rect(a: JSONArray?): Rect? {
         if (a == null || a.length() != 4) return null

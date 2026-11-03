@@ -24,8 +24,8 @@ android {
         applicationId = "com.grib.onyxink" // onyx-ink: own app id so it installs next to upstream
         minSdk = 28
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.3.0"
+        versionCode = 10
+        versionName = "0.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

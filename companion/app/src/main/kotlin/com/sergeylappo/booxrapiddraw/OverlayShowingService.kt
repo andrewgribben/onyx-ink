@@ -212,7 +212,7 @@ class OverlayShowingService : Service() {
             touchHelper.setStrokeStyle(control.style)
             if (!rawOpened) { touchHelper.openRawDrawing(); rawOpened = true }
             val (limit, exclude) = control.limit(bounds, loc[0], loc[1])
-            if (!control.wanted || limit.isEmpty) {
+            if (!control.wanted || limit.isEmpty()) {
                 touchHelper.setRawDrawingEnabled(false)
                 touchHelper.setRawInputReaderEnable(false)
                 return
