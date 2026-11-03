@@ -23,7 +23,12 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 **M1 done 2026-11-03.**
 
 ## M2: Replay
-- [ ] —
+- [~] Instant Onyx ink, then a normal stroke in the right place (2026-11-03, Note Air 5C): owner confirms every stroke instant, stays put, at zoom 1 and when zoomed. Diagnostics: every stroke `matched`. Offset in CSS px not yet read off diagnostics. **Open: input is slow after double-tap zoom** (not yet diagnosed, see below).
+- [x] Fallback (2026-11-03): companion stopped, strokes still appeared promptly and saved; after restart, strokes matched again.
+- [~] Eraser, lasso, undo/redo, autosave: undo/redo and autosave confirmed. The owner's stylus has no eraser end or side button, so those can't be tested on this device (unit-tested only). Toolbar eraser works but the overlay first draws its path as black ink; expected until M3 sends tool state to the companion. Lasso and OCR not yet checked.
+- [~] No duplicates: owner reports clean writing with no doubles, strokes where written. The formal 200-stroke count from diagnostics is still to do.
+- [ ] Palm rejection.
+- Harness 2026-11-03: 48 pass, 1 fail (text tool typing), which also fails on upstream `f4b4ec4`, so not ours.
 
 ## M3: Region, pause and style
 - [ ] —
