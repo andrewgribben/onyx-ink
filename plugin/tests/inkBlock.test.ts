@@ -25,6 +25,7 @@ describe("inline ink blocks", () => {
     const at = (y: number) => makeStroke({ pen: "fountain", color: "#000000", width: 2, pts: new Float32Array([10, y, 0.5]) });
     expect(inkBlockHeight(base)).toBe(600);
     expect(inkBlockGrowTo({ ...base, strokes: [at(300)] })).toBe(600);
+    expect(inkBlockHeight({ ...base, strokes: [at(210)] })).toBe(400);
     expect(inkBlockGrowTo({ ...base, strokes: [at(500)] })).toBe(700);
     expect(inkBlockHeight({ ...base, h: 1814, strokes: [at(1322)] })).toBe(1500);
     expect(inkBlockGrowTo({ ...base, h: 1814, strokes: [at(1322)] })).toBe(1814);

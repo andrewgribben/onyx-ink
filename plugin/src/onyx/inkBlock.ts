@@ -11,7 +11,7 @@ const SPACE_BELOW = 150;
 /** Grow once ink comes this close to the bottom. */
 const GROW_AT = 100;
 
-/** Height a block should have: the lowest ink plus some room, never below 600, in steps of 50. */
+/** Height a block should have: 600 while blank (room to start writing), else the lowest ink plus some room, in steps of 50. */
 export function inkBlockHeight(page: Page): number {
   let lowest = 0;
   for (const stroke of page.strokes) {
@@ -19,7 +19,8 @@ export function inkBlockHeight(page: Page): number {
     lowest = Math.max(lowest, bounds.y + bounds.h);
   }
   for (const text of page.texts) lowest = Math.max(lowest, text.y + text.h);
-  return Math.max(MIN_HEIGHT, Math.ceil((lowest + SPACE_BELOW) / 50) * 50);
+  if (lowest === 0) return MIN_HEIGHT;
+  return Math.ceil((lowest + SPACE_BELOW) / 50) * 50;
 }
 
 /** New height while writing: grow when ink nears the bottom, otherwise keep the page as it is (no jumps under the pen). */
