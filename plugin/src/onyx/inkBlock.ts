@@ -5,13 +5,13 @@ import { strokeBounds } from "../core/ink/geom";
 import { emptyPage, EMPTY_META, type Page } from "../core/ink/model";
 import { DEFAULT_PAPER, type PaperSpec } from "../core/paper";
 
-const MIN_HEIGHT = 600;
+const MIN_HEIGHT = 400; // 300 too small to write in, 600 too tall (owner 2026-11-03)
 /** Free space kept below the lowest ink, page units (about two lines of handwriting). */
 const SPACE_BELOW = 150;
 /** Grow once ink comes this close to the bottom. */
 const GROW_AT = 100;
 
-/** Height a block should have: 600 while blank (room to start writing), else the lowest ink plus some room, in steps of 50. */
+/** Height a block should have: 400 while blank (room to start writing), else the lowest ink plus some room, in steps of 50. */
 export function inkBlockHeight(page: Page): number {
   let lowest = 0;
   for (const stroke of page.strokes) {
@@ -29,9 +29,9 @@ export function inkBlockGrowTo(page: Page): number {
   return target - SPACE_BELOW + GROW_AT > page.h ? Math.max(page.h, target) : page.h;
 }
 
-/** A new block file: one 1000 x 600 page on the given paper (the plugin's default paper for new pages). */
+/** A new block file: one blank 1000 x 400 page on the given paper (the plugin's default paper for new pages). */
 export function createInkBlockText(paper: PaperSpec = DEFAULT_PAPER): string {
-  const page = emptyPage({ kind: "paper", paper: { ...paper, orientation: "portrait" } }, 1000, 600);
+  const page = emptyPage({ kind: "paper", paper: { ...paper, orientation: "portrait" } }, 1000, MIN_HEIGHT);
   const frontmatter = withInkFrontmatter("", { "ink-block": "true" });
   return serializeInkFile(frontmatter, { doc: { pages: [page] }, meta: EMPTY_META });
 }

@@ -6,12 +6,12 @@ import { emptyPage, makeStroke } from "../src/core/ink/model";
 import { createInkBlockText, inkBlockGrowTo, inkBlockHeight } from "../src/onyx/inkBlock";
 
 describe("inline ink blocks", () => {
-  it("creates a round-trippable 1000 by 600 page on the default paper with block frontmatter", () => {
+  it("creates a round-trippable 1000 by 400 page on the default paper with block frontmatter", () => {
     const parsed = parseInkFile(createInkBlockText());
     expect(parsed.doc.pages).toHaveLength(1);
     expect(parsed.doc.pages[0]).toMatchObject({
       w: 1000,
-      h: 600,
+      h: 400,
       bg: { kind: "paper", paper: { style: "lined" } },
     });
     expect(parsed.frontmatter).toMatch(/^---\n[\s\S]*^ink-notebook: 1$/m);
@@ -23,7 +23,7 @@ describe("inline ink blocks", () => {
       color: "white" as const, orientation: "portrait" as const } };
     const base = emptyPage(paper, 1000, 600);
     const at = (y: number) => makeStroke({ pen: "fountain", color: "#000000", width: 2, pts: new Float32Array([10, y, 0.5]) });
-    expect(inkBlockHeight(base)).toBe(600);
+    expect(inkBlockHeight(base)).toBe(400);
     expect(inkBlockGrowTo({ ...base, strokes: [at(300)] })).toBe(600);
     expect(inkBlockHeight({ ...base, strokes: [at(210)] })).toBe(400);
     expect(inkBlockGrowTo({ ...base, strokes: [at(500)] })).toBe(700);
