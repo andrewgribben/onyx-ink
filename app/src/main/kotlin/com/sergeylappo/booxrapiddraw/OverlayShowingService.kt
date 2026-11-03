@@ -1,0 +1,306 @@
+package com.sergeylappo.booxrapiddraw
+
+import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.Rect
+import android.graphics.RectF
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.SurfaceView
+import android.view.View
+import android.view.View.OnLayoutChangeListener
+import android.view.WindowManager
+import android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+import android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+import android.view.WindowManager.LayoutParams.MATCH_PARENT
+import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import com.onyx.android.sdk.data.note.TouchPoint
+import com.onyx.android.sdk.pen.RawInputCallback
+import com.onyx.android.sdk.pen.TouchHelper
+import com.onyx.android.sdk.pen.data.TouchPointList
+
+private const val CHANNEL_ID = "rapid_draw_channel_overlay_01"
+private const val STROKE_WIDTH = 3.0f
+
+class OverlayShowingService : Service() {
+    private val paint = Paint()
+
+    private lateinit var touchHelper: TouchHelper
+    private lateinit var wm: WindowManager
+    private lateinit var overlayPaintingView: SurfaceView
+
+    private var wsServer: StrokeWebSocketServer? = null
+    private val currentStrokePoints = mutableListOf<FloatArray>()
+    private val listStrokePoints = mutableListOf<FloatArray>()
+    private val strokeLock = Any()
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    override fun onBind(intent: Intent) = null
+
+    override fun onCreate() {
+        super.onCreate()
+
+        createForegroundNotification()
+
+        wm = getSystemService(WINDOW_SERVICE) as WindowManager
+
+        createOverlayPaintingView()
+
+        initPaint()
+        initSurfaceView()
+        initWebSocketServer()
+    }
+
+    private fun initWebSocketServer() {
+        try {
+            wsServer = StrokeWebSocketServer(8765)
+            wsServer?.onCommand = { cmd ->
+                mainHandler.post {
+                    when (cmd) {
+                        "pause" -> pauseRawDrawing()
+                        "resume" -> { paused = false; reinitRawDrawing() }
+                    }
+                }
+            }
+            wsServer?.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "STOP") {
+            Toast.makeText(this, "Terminating Rapid Draw Service...", Toast.LENGTH_SHORT).show()
+            stopSelf()
+            return START_NOT_STICKY // Prevents service from being recreated
+        }
+
+        Toast.makeText(this, "Starting Rapid Draw Service", Toast.LENGTH_SHORT).show()
+        return START_STICKY // Service will be recreated if killed
+    }
+
+    private fun createForegroundNotification() {
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                "Boox Rapid draw overlay service",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+        )
+
+        // add notification intent to finish the service
+        val pendingIntent = PendingIntent.getService(
+            this,
+            0,
+            Intent(this, OverlayShowingService::class.java).apply { action = "STOP" },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.overlay_service_notification_content_title))
+            .setContentText(getString(R.string.overlay_service_notification_content))
+            .setSmallIcon(R.drawable.rapid_draw)
+            .addAction(NotificationCompat.Action.Builder(null, "Stop", pendingIntent).build())
+            .build()
+
+        //noinspection InlinedApi (Seems to work, IDK why, maybe older Android versions might not support this)
+        ServiceCompat.startForeground(this, 1, notification, FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+    }
+
+    private fun createOverlayPaintingView() {
+        overlayPaintingView = SurfaceView(this)
+        overlayPaintingView.setZOrderOnTop(true)
+        overlayPaintingView.holder.setFormat(PixelFormat.TRANSPARENT)
+        overlayPaintingView.alpha = 1.0f
+
+        val topLeftParams = WindowManager.LayoutParams(
+            MATCH_PARENT,
+            MATCH_PARENT,
+            TYPE_APPLICATION_OVERLAY,
+            FLAG_NOT_FOCUSABLE or FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSPARENT
+        )
+        topLeftParams.alpha = 0.2f
+        topLeftParams.gravity = Gravity.START or Gravity.TOP
+
+        //        TODO this is duplicated
+        //        TODO actual bottom place is calculated incorrectly due to the status bar...
+        val displayMetrics = resources.displayMetrics
+        val bounds = Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
+
+        topLeftParams.x = bounds.left
+        topLeftParams.y = bounds.top
+
+        wm.addView(overlayPaintingView, topLeftParams)
+    }
+
+    private fun initPaint() {
+        paint.isAntiAlias = true
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.BLACK
+        paint.strokeWidth = STROKE_WIDTH
+    }
+
+    //    TODO fix suppress
+    @SuppressLint("ClickableViewAccessibility")
+    private fun initSurfaceView() {
+        touchHelper = TouchHelper.create(overlayPaintingView, 2, callback)
+        touchHelper.setPenUpRefreshTimeMs(1000)
+        // Upstream re-added this listener inside itself and *toggled* the raw input
+        // reader on every layout pass, so any relayout (e.g. the IME) could switch it off.
+        overlayPaintingView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            reinitRawDrawing()
+        }
+
+        overlayPaintingView.setOnTouchListener { _: View?, _: MotionEvent? -> true }
+        mainHandler.postDelayed(watchdog, 3000)
+    }
+
+    @Volatile private var paused = false
+    private var rawOpened = false
+
+    private fun reinitRawDrawing() {
+        if (paused) return
+        try {
+            val loc = IntArray(2)
+            overlayPaintingView.getLocationOnScreen(loc)
+            wsServer?.originX = loc[0]
+            wsServer?.originY = loc[1]
+            val bounds = Rect()
+            overlayPaintingView.getLocalVisibleRect(bounds)
+            touchHelper.setStrokeColor(Color.BLACK)
+            touchHelper.setStrokeStyle(TouchHelper.STROKE_STYLE_PENCIL)
+            if (!rawOpened) { touchHelper.openRawDrawing(); rawOpened = true }
+            touchHelper.setStrokeWidth(STROKE_WIDTH).setLimitRect(bounds, listOf())
+            touchHelper.setRawInputReaderEnable(true)
+            touchHelper.setRawDrawingEnabled(true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun pauseRawDrawing() {
+        paused = true
+        try {
+            touchHelper.setRawDrawingEnabled(false)
+            touchHelper.setRawInputReaderEnable(false)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Another raw-drawing client (Onyx handwriting keyboard, Notes...) can steal the
+    // pen reader; re-claim it periodically while not paused.
+    private val watchdog = object : Runnable {
+        override fun run() {
+            if (!paused) {
+                try {
+                    if (!touchHelper.isRawDrawingInputEnabled) reinitRawDrawing()
+                } catch (e: Exception) { }
+            }
+            mainHandler.postDelayed(this, 3000)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainHandler.removeCallbacks(watchdog)
+        wm.removeViewImmediate(overlayPaintingView)
+        touchHelper.closeRawDrawing()
+        try {
+            wsServer?.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private val callback: RawInputCallback = object : RawInputCallback() {
+        // Each stroke owns its own buffers so a quick next stroke can't wipe a
+        // stroke that is still waiting for its TouchPointList.
+        private var drawing = false
+        private var curMoves = mutableListOf<FloatArray>()
+        private var curList: MutableList<FloatArray>? = null
+        private var pendingList: Array<MutableList<FloatArray>?>? = null
+
+        private fun fa(tp: TouchPoint) = floatArrayOf(tp.x, tp.y, tp.pressure, 0f)
+
+        override fun onBeginRawDrawing(b: Boolean, touchPoint: TouchPoint?) {
+            synchronized(strokeLock) {
+                drawing = true
+                curMoves = mutableListOf()
+                curList = null
+                touchPoint?.let { curMoves.add(fa(it)) }
+            }
+        }
+
+        override fun onEndRawDrawing(b: Boolean, touchPoint: TouchPoint?) {
+            val moves: MutableList<FloatArray>
+            val holder: Array<MutableList<FloatArray>?>
+            synchronized(strokeLock) {
+                drawing = false
+                touchPoint?.let { curMoves.add(fa(it)) }
+                moves = curMoves
+                holder = arrayOf(curList)
+                pendingList = holder
+            }
+            // The SDK may deliver the full TouchPointList just after onEndRawDrawing.
+            mainHandler.postDelayed({
+                val pts: List<FloatArray>
+                synchronized(strokeLock) {
+                    val l = holder[0]
+                    pts = if (l != null && l.size > 1) l else moves
+                    if (pendingList === holder) pendingList = null
+                }
+                if (pts.size > 1) {
+                    val dm = resources.displayMetrics
+                    wsServer?.broadcastStroke(dm.widthPixels, dm.heightPixels, pts)
+                }
+            }, 80)
+        }
+
+        override fun onRawDrawingTouchPointMoveReceived(touchPoint: TouchPoint?) {
+            touchPoint?.let {
+                synchronized(strokeLock) { curMoves.add(fa(it)) }
+            }
+        }
+
+        override fun onPenActive(point: TouchPoint?) {
+            touchHelper.setRawDrawingEnabled(true)
+        }
+
+        override fun onRawDrawingTouchPointListReceived(touchPointList: TouchPointList) {
+            val points = touchPointList.points ?: return
+            if (points.isEmpty()) return
+            val list = points.map { fa(it) }.toMutableList()
+            synchronized(strokeLock) {
+                if (drawing) curList = list else pendingList?.let { it[0] = list }
+            }
+        }
+
+        override fun onBeginRawErasing(b: Boolean, touchPoint: TouchPoint?) {}
+
+        override fun onEndRawErasing(b: Boolean, touchPoint: TouchPoint?) {}
+
+        override fun onRawErasingTouchPointMoveReceived(touchPoint: TouchPoint?) {}
+
+        override fun onRawErasingTouchPointListReceived(touchPointList: TouchPointList?) {}
+
+        override fun onPenUpRefresh(refreshRect: RectF?) {
+            touchHelper.isRawDrawingRenderEnabled = false
+            super.onPenUpRefresh(refreshRect)
+        }
+    }
+}
