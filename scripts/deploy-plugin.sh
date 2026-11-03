@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the plugin and push it to the Obsidian vault on the Boox over adb.
 # Usage: BOOX_VAULT=/sdcard/<path-to-vault> scripts/deploy-plugin.sh
+# Set ANDROID_SERIAL=<serial> if adb lists the Boox more than once (USB plus wireless).
 set -euo pipefail
 : "${BOOX_VAULT:?set BOOX_VAULT=/sdcard/<path-to-vault>}"
 DEST="$BOOX_VAULT/.obsidian/plugins/ink-notebook-onyx"
