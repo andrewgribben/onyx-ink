@@ -2,7 +2,7 @@ import { Menu, moment, Notice, normalizePath, Scope, setIcon, TextFileView, TFil
 import type InkNotebookPlugin from "../main";
 import { inkDataOf, InkParseError, parseInkFile, serializeInkFile, typedTextOf } from "../core/ink/codec";
 // onyx-ink: handwriting block growth
-import { inkBlockGrowTo } from "../onyx/inkBlock";
+import { inkBlockGrowTo, inkBlockHeight } from "../onyx/inkBlock";
 import type { InkFile, InkMeta, PageBackground } from "../core/ink/model";
 import { paperLabel, paperSize } from "../core/paper";
 import { joinPath } from "../core/folders";
@@ -141,6 +141,7 @@ export class InkView extends TextFileView {
     this.notes?.close();
     this.library?.close();
     this.toolbar?.destroy();
+    if (this.blockTrimTimer !== null) window.clearTimeout(this.blockTrimTimer); // onyx-ink
     this.surface?.destroy();
   }
 
@@ -212,6 +213,7 @@ export class InkView extends TextFileView {
     const block = this.isBlock();
     if (block || this.blockFit) this.surface.setSettings({ fit: block ? "width" : this.plugin.settings.fit });
     this.blockFit = block;
+    if (block) this.trimBlock();
     this.toolbar.renderEnd();
     this.notes?.setFile(this.file);
   }
@@ -279,11 +281,23 @@ export class InkView extends TextFileView {
     return /^ink-block:\s*true\s*$/m.test(this.frontmatter);
   }
 
+  // onyx-ink: a block's height follows its ink here exactly as in the note: grow while writing, shrink when it stops.
+  private blockTrimTimer: number | null = null;
+  private trimBlock(): void {
+    const shrink = this.surface.page.h - inkBlockHeight(this.surface.page);
+    if (shrink > 0) this.surface.growPageBy(-shrink);
+  }
+
   private onChanged(): void {
-    // onyx-ink: a block keeps growing as you write on its full page, as it does in the note.
+    // onyx-ink: see trimBlock
     if (this.isBlock()) {
       const grow = inkBlockGrowTo(this.surface.page) - this.surface.page.h;
       if (grow > 0) this.surface.growPageBy(grow);
+      if (this.blockTrimTimer !== null) window.clearTimeout(this.blockTrimTimer);
+      this.blockTrimTimer = window.setTimeout(() => {
+        this.blockTrimTimer = null;
+        if (this.surface) this.trimBlock();
+      }, 4000);
     }
     this.saveSoon();
     if (this.file) this.plugin.inkChanged(this.file);

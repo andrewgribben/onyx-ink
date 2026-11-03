@@ -6,10 +6,10 @@ import { emptyPage, EMPTY_META, type Page } from "../core/ink/model";
 import { DEFAULT_PAPER, type PaperSpec } from "../core/paper";
 
 const MIN_HEIGHT = 600;
-/** Free space kept below the lowest ink, page units (a couple of lines of handwriting). */
-const SPACE_BELOW = 250;
+/** Free space kept below the lowest ink, page units (about two lines of handwriting). */
+const SPACE_BELOW = 150;
 /** Grow once ink comes this close to the bottom. */
-const GROW_AT = 150;
+const GROW_AT = 100;
 
 /** Height a block should have: the lowest ink plus some room, never below 600, in steps of 50. */
 export function inkBlockHeight(page: Page): number {

@@ -196,7 +196,7 @@ export class InkBlockChild extends MarkdownRenderChild {
     }, 4000);
   }
 
-  /** After writing stops, shrink to the ink plus a little room (blocks grew in big steps and after erasing). */
+  /** Shrink to the ink plus a little room: after writing stops, and on load. Same rule as the full page. */
   private trim(): void {
     if (!this.surface) return;
     const shrink = this.surface.page.h - inkBlockHeight(this.surface.page);
@@ -216,6 +216,7 @@ export class InkBlockChild extends MarkdownRenderChild {
     this.surface.load(parsed);
     this.dirty = false;
     this.resizePage();
+    this.trim(); // the full page may have left it taller than its ink
     if (initial) this.containerEl.setAttr("aria-label", `Handwriting block from ${this.file.basename}`);
   }
 
