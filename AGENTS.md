@@ -41,7 +41,7 @@ cd plugin
 npm ci
 npm run check        # typecheck + vitest + production build. Must pass before every commit that touches plugin/
 npm test             # vitest only
-npm run harness      # pen engine in a browser via Playwright (run before closing a milestone)
+npm run harness      # pen engine in a browser via Playwright (`npm i --no-save playwright` first; run before closing a milestone that changes drawing/input code)
 npm run build        # outputs main.js (+ manifest.json, styles.css)
 ```
 e2e (`plugin/e2e/`) needs Linux + Xvfb. Run it before closing a milestone if the environment allows, otherwise note it in progress.md.

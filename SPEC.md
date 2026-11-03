@@ -250,7 +250,7 @@ Each milestone is a separate branch or PR-sized chunk with its own commits. Don'
 ## 8. Testing
 
 - **Unit (vitest)**: all pure `src/onyx/*` modules. Use fixtures recorded from the real device and stored in `plugin/tests/fixtures/onyx/`. Add a hidden debug command that records them.
-- **Existing suites**: `npm run check` must stay green. Run `npm run harness` and the e2e suite (Linux/Xvfb) before each milestone is closed. Bridge mode must be off in those environments, since there's no WebSocket.
+- **Existing suites**: `npm run check` must stay green. Run `npm run harness` (needs Playwright: `npm i --no-save playwright`) and the e2e suite (Linux/Xvfb) before closing any milestone that changes drawing or input code (M2 onwards). They are upstream developer tests and are not needed to use the plugin. Bridge mode must be off in those environments, since there's no WebSocket.
 - **On-device checklist** (`docs/device-test.md`, created in M2 and extended later): the scenarios from the M2 and M3 criteria, run on a Note Air 5C. Record the firmware version and both app versions.
 - The Onyx SDK only works on real hardware, so the emulator is useless for pen tests.
 
