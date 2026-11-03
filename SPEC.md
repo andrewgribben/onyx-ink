@@ -54,7 +54,7 @@ Both directories were added with `git subtree --squash`. Section 9 covers pullin
 ```
 ┌─────────────── Boox (Android) ───────────────────────────────────────┐
 │                                                                      │
-│  companion/ (Onyx Ink Companion APK)                                 │
+│  companion/ (Singularity Notebook Companion APK)                     │
 │   Overlay SurfaceView + TouchHelper ──► EPD draws ink instantly      │
 │   RawInputCallback ──► stroke msg ──► WS server 127.0.0.1:8765        │
 │        ▲  region / style / pause / resume / refresh                  │
@@ -168,7 +168,7 @@ Persist the settings through the existing `src/settings.ts` normaliser, with `on
 
 ## 5. Companion changes (`companion/`)
 
-1. **Identity**: `applicationId = "com.grib.onyxink"`, app name **Onyx Ink Companion**. Keep the MIT `LICENSE` and add a copyright line. The Kotlin package name can stay for now.
+1. **Identity**: `applicationId = "com.grib.onyxink"`, app name **Singularity Notebook Companion** (matches the plugin name). Keep the MIT `LICENSE` and add a copyright line. The Kotlin package name can stay for now.
 2. **Region support**: handle `region`. Call `touchHelper.setLimitRect(rect, excludeRects)`, with every rect converted from physical screen px to overlay-local px by subtracting the overlay origin. With **no region, raw drawing is disabled by default**. Add an app toggle, "Global mode", that restores upstream's full-screen behaviour for other apps.
 3. **Style**: handle `style`. Map it to `setStrokeWidth`, `setStrokeColor` and `setStrokeStyle`: marker → `STROKE_STYLE_MARKER` if available, otherwise pencil, and on colour panels use the closest supported colour.
 4. **Refresh**: handle `refresh`. Clear the overlay rect after commit. Investigate `EpdController` partial refresh versus toggling `setRawDrawingRenderEnabled`; see section 10.
