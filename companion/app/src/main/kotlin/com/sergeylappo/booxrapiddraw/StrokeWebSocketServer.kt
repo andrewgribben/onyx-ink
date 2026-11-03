@@ -20,6 +20,29 @@ class StrokeWebSocketServer(port: Int = 8765) : WebSocketServer(InetSocketAddres
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake?) {
         Log.i(TAG, "New client connected: ${conn.remoteSocketAddress}")
         connections.add(conn)
+        // onyx-ink: v2 hello then current state; v1 clients ignore both.
+        conn.send(JSONObject().put("type", "hello").put("v", 2).put("app", "onyx-ink-companion")
+            .put("version", appVersion)
+            .put("screen", JSONObject().put("w", screenWidth).put("h", screenHeight))
+            .put("pressureMax", 4096).toString())
+        sendState(conn)
+    }
+
+    // onyx-ink: protocol v2 (SPEC 6): hello fields, raw drawing state and stroke ids.
+    @Volatile var appVersion: String = "?"
+    @Volatile var screenWidth: Int = 0
+    @Volatile var screenHeight: Int = 0
+    @Volatile var rawState: String = "disabled"
+    private val strokeIds = java.util.concurrent.atomic.AtomicLong(0)
+
+    private fun sendState(conn: WebSocket) {
+        if (conn.isOpen) conn.send(JSONObject().put("type", "state").put("v", 2).put("raw", rawState).toString())
+    }
+
+    fun broadcastState(state: String) {
+        rawState = state
+        val message = JSONObject().put("type", "state").put("v", 2).put("raw", state).toString()
+        connections.filter { it.isOpen }.forEach { it.send(message) }
     }
 
     override fun onClose(conn: WebSocket, code: Int, reason: String?, remote: Boolean) {
@@ -28,7 +51,7 @@ class StrokeWebSocketServer(port: Int = 8765) : WebSocketServer(InetSocketAddres
     }
 
     override fun onMessage(conn: WebSocket, message: String?) {
-        if (message == null) return
+        if (message == null || message.length > 64 * 1024) return // onyx-ink: ignore oversized messages
         try {
             val type = JSONObject(message).optString("type")
             if (type.isNotEmpty()) onCommand?.invoke(type)
@@ -55,11 +78,13 @@ class StrokeWebSocketServer(port: Int = 8765) : WebSocketServer(InetSocketAddres
         Log.i(TAG, "Stroke WebSocket server started on ${address.address.hostAddress}:${address.port}")
     }
 
-    fun broadcastStroke(widthPx: Int, heightPx: Int, points: List<FloatArray>) {
+    fun broadcastStroke(widthPx: Int, heightPx: Int, points: List<DoubleArray>) {
         if (connections.isEmpty()) return
         try {
             val json = JSONObject()
             json.put("type", "stroke")
+            json.put("v", 2) // onyx-ink: v2 fields; v1 fields below unchanged
+            json.put("id", strokeIds.incrementAndGet())
             json.put("w", widthPx)
             json.put("h", heightPx)
             json.put("ox", originX)
@@ -69,9 +94,9 @@ class StrokeWebSocketServer(port: Int = 8765) : WebSocketServer(InetSocketAddres
             for (p in points) {
                 val pt = JSONArray()
                 // p: [x, y, pressure, timestamp]
-                pt.put(p[0].toDouble())
-                pt.put(p[1].toDouble())
-                pt.put(p[2].toDouble())
+                pt.put(p[0])
+                pt.put(p[1])
+                pt.put(p[2])
                 pt.put(p[3].toLong())
                 ptsArray.put(pt)
             }

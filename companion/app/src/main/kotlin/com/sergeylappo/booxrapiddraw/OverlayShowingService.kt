@@ -65,6 +65,12 @@ class OverlayShowingService : Service() {
     private fun initWebSocketServer() {
         try {
             wsServer = StrokeWebSocketServer(8765)
+            // onyx-ink: v2 hello needs the physical screen size and app version before any client connects.
+            @Suppress("DEPRECATION")
+            val real = android.util.DisplayMetrics().also { wm.defaultDisplay.getRealMetrics(it) }
+            wsServer?.screenWidth = real.widthPixels
+            wsServer?.screenHeight = real.heightPixels
+            wsServer?.appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
             wsServer?.onCommand = { cmd ->
                 mainHandler.post {
                     when (cmd) {
@@ -179,6 +185,7 @@ class OverlayShowingService : Service() {
             overlayPaintingView.getLocationOnScreen(loc)
             wsServer?.originX = loc[0]
             wsServer?.originY = loc[1]
+            wsServer?.broadcastState("enabled") // onyx-ink: v2 state
             val bounds = Rect()
             overlayPaintingView.getLocalVisibleRect(bounds)
             touchHelper.setStrokeColor(Color.BLACK)
@@ -194,6 +201,7 @@ class OverlayShowingService : Service() {
 
     private fun pauseRawDrawing() {
         paused = true
+        wsServer?.broadcastState("paused") // onyx-ink: v2 state
         try {
             touchHelper.setRawDrawingEnabled(false)
             touchHelper.setRawInputReaderEnable(false)
@@ -208,7 +216,10 @@ class OverlayShowingService : Service() {
         override fun run() {
             if (!paused) {
                 try {
-                    if (!touchHelper.isRawDrawingInputEnabled) reinitRawDrawing()
+                    if (!touchHelper.isRawDrawingInputEnabled) {
+                        wsServer?.broadcastState("stolen") // onyx-ink: v2 state
+                        reinitRawDrawing()
+                    }
                 } catch (e: Exception) { }
             }
             mainHandler.postDelayed(this, 3000)
@@ -217,6 +228,7 @@ class OverlayShowingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        wsServer?.broadcastState("disabled") // onyx-ink: v2 state
         mainHandler.removeCallbacks(watchdog)
         wm.removeViewImmediate(overlayPaintingView)
         touchHelper.closeRawDrawing()
@@ -231,11 +243,12 @@ class OverlayShowingService : Service() {
         // Each stroke owns its own buffers so a quick next stroke can't wipe a
         // stroke that is still waiting for its TouchPointList.
         private var drawing = false
-        private var curMoves = mutableListOf<FloatArray>()
-        private var curList: MutableList<FloatArray>? = null
-        private var pendingList: Array<MutableList<FloatArray>?>? = null
+        private var curMoves = mutableListOf<DoubleArray>()
+        private var curList: MutableList<DoubleArray>? = null
+        private var pendingList: Array<MutableList<DoubleArray>?>? = null
 
-        private fun fa(tp: TouchPoint) = floatArrayOf(tp.x, tp.y, tp.pressure, 0f)
+        // onyx-ink: doubles keep the real ms timestamp exact (a float rounds anything above 2^24).
+        private fun fa(tp: TouchPoint) = doubleArrayOf(tp.x.toDouble(), tp.y.toDouble(), tp.pressure.toDouble(), tp.timestamp.toDouble())
 
         override fun onBeginRawDrawing(b: Boolean, touchPoint: TouchPoint?) {
             synchronized(strokeLock) {
@@ -247,8 +260,8 @@ class OverlayShowingService : Service() {
         }
 
         override fun onEndRawDrawing(b: Boolean, touchPoint: TouchPoint?) {
-            val moves: MutableList<FloatArray>
-            val holder: Array<MutableList<FloatArray>?>
+            val moves: MutableList<DoubleArray>
+            val holder: Array<MutableList<DoubleArray>?>
             synchronized(strokeLock) {
                 drawing = false
                 touchPoint?.let { curMoves.add(fa(it)) }
@@ -258,7 +271,7 @@ class OverlayShowingService : Service() {
             }
             // The SDK may deliver the full TouchPointList just after onEndRawDrawing.
             mainHandler.postDelayed({
-                val pts: List<FloatArray>
+                val pts: List<DoubleArray>
                 synchronized(strokeLock) {
                     val l = holder[0]
                     pts = if (l != null && l.size > 1) l else moves
