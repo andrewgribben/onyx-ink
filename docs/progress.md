@@ -4,7 +4,7 @@ Tick acceptance criteria from SPEC section 7 as they pass. Add a date and short 
 
 ## M0: Bootstrap
 - [x] Upstreams imported as subtrees (plugin @ 40f8c7a, companion @ 22a7d83) (2026-11-03)
-- [ ] `plugin`: `npm ci && npm run check` passes
+- [x] `plugin`: `npm ci && npm run check` passes (2026-11-03: Node 24.22, 18 files / 257 tests, production build OK)
 - [ ] `companion`: `./gradlew assembleDebug` passes
 - [ ] `scripts/deploy-plugin.sh` and `scripts/deploy-companion.sh`
 - [ ] Identity renames (plugin id `ink-notebook-onyx`, app id `com.grib.onyxink`)
