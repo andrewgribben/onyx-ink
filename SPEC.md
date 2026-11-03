@@ -224,7 +224,7 @@ JSON text frames over `ws://127.0.0.1:8765`. Unknown `type`s and fields are igno
 
 ## 7. Milestones and acceptance criteria
 
-Each milestone is a separate branch or PR-sized chunk with its own commits. Don't start the next milestone until the current one's acceptance criteria pass.
+Each milestone is a separate branch or PR-sized chunk with its own commits. Don't start the next milestone until the current one's acceptance criteria pass. Order: M0, M1, M2, M3, M5, M4 (M5 was added later; M4 is polish and release, so it goes last).
 
 ### M0: Bootstrap
 - `cd plugin && npm ci && npm run check` passes (typecheck, vitest, production build).
