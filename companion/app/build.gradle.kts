@@ -21,7 +21,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.rainyluna.rapiddrawink"
+        applicationId = "com.grib.onyxink" // onyx-ink: own app id so it installs next to upstream
         minSdk = 28
         targetSdk = 34
         versionCode = 8

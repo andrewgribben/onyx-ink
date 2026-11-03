@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Rapid Draw Ink</string>
+    <string name="app_name">Onyx Ink Companion</string><!-- onyx-ink: renamed -->
     <string name="exit">Exit</string>
     <string name="overlay_service_notification_content_title">Boox rapid draw overlay</string>
     <string name="overlay_service_notification_content">Overlay enabled</string>
