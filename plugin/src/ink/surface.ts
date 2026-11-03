@@ -103,6 +103,8 @@ export class InkSurface {
   readonly history = new History<InkDoc>();
   view: ViewTransform = { scale: 1, ox: 0, oy: 0 };
   /** Scale at which the page fits (the zoom level 100 %). */
+  // onyx-ink: inline blocks draw the page without its outline.
+  pageEdge = true;
   fitScale = 1;
   width = 0;
   height = 0;
@@ -512,7 +514,7 @@ export class InkSurface {
     ctx.restore();
     ctx.lineWidth = 1 / this.view.scale;
     ctx.strokeStyle = this.settings.eink ? "#000000" : "#b0b0b0";
-    ctx.strokeRect(0, 0, page.w, page.h);
+    if (this.pageEdge) ctx.strokeRect(0, 0, page.w, page.h); // onyx-ink: inline blocks hide the page edge
     ctx.restore();
   }
 

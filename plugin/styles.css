@@ -1830,6 +1830,30 @@ canvas.ink-preview-page {
   width: 100%;
 }
 
+/* No embed line, padding or page margin: the block sits flush with the note's text. */
+.internal-embed.markdown-embed:has(.ink-block) {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.markdown-embed:has(.ink-block) .markdown-preview-view,
+.markdown-embed:has(.ink-block) .markdown-embed-content {
+  padding: 0;
+  overflow: visible;
+  max-height: none;
+}
+
+.markdown-embed:has(.ink-block) .markdown-embed-link {
+  display: none;
+}
+
+/* Cancels the surface's 12 px side margins; top and bottom stay as white space (a negative top margin would
+   pull the block over the line above it, which then takes the pen's taps). */
+.ink-block-page {
+  margin: 0 -12px;
+}
+
 .ink-block-page > .ink-surface {
   width: 100%;
   height: 100%;

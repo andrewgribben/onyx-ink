@@ -82,6 +82,9 @@ export class InkBlockChild extends MarkdownRenderChild {
       notice: (message) => new Notice(message, 2500),
     });
     this.surface.el.addClass("ink-block-touch");
+    // Seamless in the note: no grey surround or page outline (the page margin is cancelled in CSS).
+    this.surface.pageEdge = false;
+    this.surface.setBackdrop("#ffffff");
     this.surface.tools = structuredClone(this.plugin.settings.tools);
     if (!["pen", "marker", "eraser"].includes(this.surface.tools.tool)) this.surface.tools.tool = "pen";
     this.surface.setSettings(this.surfaceSettings());
@@ -165,7 +168,8 @@ export class InkBlockChild extends MarkdownRenderChild {
     const page = this.surface?.page;
     if (!page) return;
     const width = Math.max(1, this.containerEl.clientWidth);
-    this.pageEl.style.height = `${page.h * (Math.max(50, width - 24) / page.w) + 24}px`;
+    // The page element is 24 px wider than the block (CSS cancels the surface's 12 px margin), so the page is `width` wide.
+    this.pageEl.style.height = `${page.h * (Math.max(50, width) / page.w) + 24}px`;
     this.surface.resize();
   }
 
