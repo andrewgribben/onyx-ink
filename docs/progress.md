@@ -14,10 +14,13 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 
 ## M1: Protocol and connection
 - [x] `protocol.ts`, `coords.ts`, `matcher.ts` unit tests in `plugin/tests/onyx*.test.ts` (2026-11-03): v1 and v2 parsing, coordinate round trip at dpr 1/2/2.5, keyboard-gap rule, pressure, timestamps, every matcher outcome plus a `late` outcome (Onyx stroke after its pointer stroke fell back, dropped so it can't duplicate). Bridge tests with a fake socket. `npm run check`: 22 files, 278 tests.
-- [~] Bridge connects and diagnostics show received strokes (2026-11-03, Note Air 5C, landscape): state `connected`, hello `onyx-ink-companion 0.2.0, 2480 x 1860, pressureMax 4096`, 10 v2 strokes listed. Tested against our v2 companion, not the unmodified upstream APK; v1 parsing is covered by unit tests only. See "Needs device check".
+- [x] Bridge connects and diagnostics show received strokes (2026-11-03, Note Air 5C, landscape): state `connected`, hello `onyx-ink-companion 0.2.0, 2480 x 1860, pressureMax 4096`, 10 v2 strokes listed. Tested against our v2 companion; owner accepted unit tests for v1 (unmodified upstream APK) parsing instead of a device run. Raw log saved and kept as fixture `plugin/tests/fixtures/onyx/noteair5c-v2-landscape-12-strokes.json` (hello, state, 12 strokes; `oy` 62, so the overlay starts below the status bar).
 - [x] Companion sends v2 `hello`, `state` and `stroke` (2026-11-03): seen on device in diagnostics. Timestamps kept as doubles (floats lose ms precision). `pressureMax` is a fixed 4096 (no SDK call found yet, SPEC 10.4).
 - [x] No change to how ink is drawn: `src/ink/` untouched; owner reports writing feels the same and smooth.
-- Harness: `npm run harness` needs Playwright (`npm i --no-save playwright`); one run showed 1 failing check, not yet compared with upstream. Owner asked whether it is needed; proposal pending to run it only for milestones that change drawing code. e2e not run (needs Linux/Xvfb).
+- Harness and e2e: owner decision 2026-11-03, run only for milestones that change drawing or input code (SPEC 8), so not run for M1. One earlier harness run showed 1 failing check; compare with upstream before M2.
+- Observation (2026-11-03): owner found the second session felt slower than the first. Not diagnosed. Likely the open question in SPEC 10.1 (upstream turns overlay rendering off in `onPenUpRefresh`, so instant ink can stop until the watchdog re-claims). Check first thing in M2.
+
+**M1 done 2026-11-03.**
 
 ## M2: Replay
 - [ ] —
@@ -29,5 +32,4 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 - [ ] —
 
 ## Needs device check
-- M1: bridge against the unmodified upstream APK (v1 strokes) on the Boox.
-- M1: "Save raw log" writes `onyx-log-*.json` (not tapped yet; needed for M2 fixtures).
+- (none open)
