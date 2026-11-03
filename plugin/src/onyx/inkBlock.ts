@@ -7,14 +7,14 @@ import { emptyPage, EMPTY_META, type Page } from "../core/ink/model";
 export function inkBlockNeedsGrowth(page: Page): boolean {
   return page.strokes.some((stroke) => {
     const bounds = strokeBounds(stroke);
-    return bounds.y + bounds.h >= page.h - 120;
-  }) || page.texts.some((text) => text.y + text.h >= page.h - 120);
+    return bounds.y + bounds.h >= page.h - 200;
+  }) || page.texts.some((text) => text.y + text.h >= page.h - 200);
 }
 
 export function createInkBlockText(): string {
   const paper = { kind: "paper" as const, paper: { style: "blank" as const, spacing: "normal" as const,
     color: "white" as const, orientation: "portrait" as const } };
-  const page = emptyPage(paper, 1000, 300);
+  const page = emptyPage(paper, 1000, 600);
   const frontmatter = withInkFrontmatter("", { "ink-block": "true" });
   return serializeInkFile(frontmatter, { doc: { pages: [page] }, meta: EMPTY_META });
 }

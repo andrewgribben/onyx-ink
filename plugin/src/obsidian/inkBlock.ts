@@ -12,7 +12,7 @@ import { registerInlineSurface, unregisterInlineSurface } from "../onyx/state";
 import { createInkBlockText, inkBlockNeedsGrowth } from "../onyx/inkBlock";
 
 const SAVE_DELAY_MS = 1000;
-const GROW_BY = 300;
+const GROW_BY = 400;
 
 export async function insertInkBlock(plugin: InkNotebookPlugin, editor: Editor, note: TFile): Promise<void> {
   const folder = await plugin.pairs.ensureInkFolder(note);
@@ -86,6 +86,14 @@ export class InkBlockChild extends MarkdownRenderChild {
     if (!["pen", "marker", "eraser"].includes(this.surface.tools.tool)) this.surface.tools.tool = "pen";
     this.surface.setSettings(this.surfaceSettings());
     this.addControls();
+    // The pen's compatibility mouse events would otherwise reach CodeMirror: it moves the cursor onto the embed
+    // line (Live Preview then shows the link text instead of the block) and focuses the editor, opening the keyboard.
+    for (const name of ["mousedown", "mouseup", "click", "dblclick", "contextmenu"]) {
+      this.registerDomEvent(this.containerEl, name as "click", (event) => {
+        event.stopPropagation();
+        if (name === "mousedown" && !(event.target as HTMLElement).closest(".ink-block-button")) event.preventDefault();
+      });
+    }
     void this.loadFile(true).catch((error) => {
       new Notice("The handwriting block could not be loaded.", 5000);
       console.error("Ink Notebook: handwriting block load failed", error);
