@@ -184,6 +184,7 @@ Design (2026-11-03, chosen while the owner was away; see `docs/decisions.md`):
 - **Height**: the page fits the ink plus 250 page units of room (at least 600, in steps of 50). It grows as soon as ink comes within 150 of the bottom, and shrinks back 4 s after writing stops (it used to grow in big steps and left too much empty space; owner 2026-11-03). Neither is an undo step.
 - **Controls**: a small row inside the block (`.ink-ui`): pen, eraser, undo, redo, Expand. The pen uses the plugin's remembered pen settings.
 - **Touch**: fingers scroll the note; the block scrolls it itself and keeps `touch-action: none`, because `pan-y` also let the pen scroll the note mid-stroke. The pen and mouse write. A faint dashed line marks the bottom of the block while writing.
+- **Full page**: a block file opened in the ink view fits its width (fit page made a grown block a narrow strip) and grows as you write there too.
 - **Saving**: the block writes its file about 1 s after a change (`serializeInkFile`) and reloads when the file changes elsewhere, unless it has unsaved strokes. Expand saves first, then opens the ink view.
 - **Bridge**: `region` gains an optional `rects` list (every visible block, plus the ink page when one is active); `rect` stays as their bounding box for older companions.
 

@@ -1,6 +1,8 @@
 import { Menu, moment, Notice, normalizePath, Scope, setIcon, TextFileView, TFile, type WorkspaceLeaf } from "obsidian";
 import type InkNotebookPlugin from "../main";
 import { inkDataOf, InkParseError, parseInkFile, serializeInkFile, typedTextOf } from "../core/ink/codec";
+// onyx-ink: handwriting block growth
+import { inkBlockGrowTo } from "../onyx/inkBlock";
 import type { InkFile, InkMeta, PageBackground } from "../core/ink/model";
 import { paperLabel, paperSize } from "../core/paper";
 import { joinPath } from "../core/folders";
@@ -156,7 +158,7 @@ export class InkView extends TextFileView {
       swipePages: s.swipePages,
       scribbleErase: s.scribbleErase,
       holdToShape: s.holdToShape,
-      fit: s.fit,
+      fit: this.isBlock() ? "width" : s.fit, // onyx-ink
       lowLatency: lowLatencyActive(s),
       eink,
     };
@@ -206,6 +208,10 @@ export class InkView extends TextFileView {
     const path = this.file?.path ?? "";
     const page = clear ? (this.plugin.lastPage.get(path) ?? 0) : this.surface.pageIndex;
     this.surface.load(parsed, { page, keepHistory: false });
+    // onyx-ink: handwriting blocks are wide and short (or tall and narrow once grown): fit their width.
+    const block = this.isBlock();
+    if (block || this.blockFit) this.surface.setSettings({ fit: block ? "width" : this.plugin.settings.fit });
+    this.blockFit = block;
     this.toolbar.renderEnd();
     this.notes?.setFile(this.file);
   }
@@ -267,7 +273,18 @@ export class InkView extends TextFileView {
     this.errorEl = box;
   }
 
+  // onyx-ink: a handwriting block file (SPEC 4.10); blockFit = its width fit is applied.
+  private blockFit = false;
+  private isBlock(): boolean {
+    return /^ink-block:\s*true\s*$/m.test(this.frontmatter);
+  }
+
   private onChanged(): void {
+    // onyx-ink: a block keeps growing as you write on its full page, as it does in the note.
+    if (this.isBlock()) {
+      const grow = inkBlockGrowTo(this.surface.page) - this.surface.page.h;
+      if (grow > 0) this.surface.growPageBy(grow);
+    }
     this.saveSoon();
     if (this.file) this.plugin.inkChanged(this.file);
   }
