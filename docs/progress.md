@@ -31,7 +31,11 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 - Harness 2026-11-03: 48 pass, 1 fail (text tool typing), which also fails on upstream `f4b4ec4`, so not ours.
 
 ## M3: Region, pause and style
-- [ ] —
+Built 2026-11-03: companion `7b0329b` (0.3.0: region via `setLimitRect`, style, Global mode toggle in the notification, raw drawing off without a region), plugin `e6b5f2e` (`region.ts`, style sync). `npm run check` 297 tests; harness 49 pass, 0 fail.
+- [~] No Onyx ink outside the writing area. Checked over adb on the Note Air 5C (diagnostics event log): region is the page area below the toolbar (`[1,342,2481,1862]` physical px, toolbar excluded); region goes null for the command palette, the diagnostics modal, eraser tool, and the Text side. Needs device check with the pen: toolbar, menus, keyboard open, other panes.
+- [~] Region follows changes: open/close, flip to Text and back, zoom and reset, tool changes all re-send (seen in the event log). Page turns and split panes not yet checked.
+- [~] Style: pen sends `pen 1.9px #000000` (width x zoom x dpr); marker and zoom re-send. Needs a look on the device to see it roughly matches.
+- [ ] Global mode with upstream `ink-onyx-bridge` and Excalidraw. Not installed in the owner's vault; needs device check.
 
 ## M4: Polish and release
 - [ ] —
@@ -40,4 +44,6 @@ Local setup (2026-11-03): deploy scripts read `scripts/local.env` (gitignored; t
 - [ ] —
 
 ## Needs device check
-- (none open)
+Owner checks, batched (2026-11-03):
+- M2: 200 quick strokes then diagnostics (`matched + fallbacks = N of N`); palm rejection; lasso; OCR; slow input after double-tap zoom (ink late, or page lag?).
+- M3: write on the toolbar, a menu, with the keyboard up and in a split pane: no Onyx ink there. Marker and zoomed pen overlay width look about right. Global mode (notification button) gives full-screen ink in another app.
