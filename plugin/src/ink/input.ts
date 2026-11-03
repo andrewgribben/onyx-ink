@@ -4,6 +4,8 @@ import { handLinkBadge } from "./render";
 import type { InkSurface } from "./surface";
 import { createSession, type InputPt, type ToolSession } from "./tools";
 import type { ToolId } from "./types";
+// onyx-ink: bridge mode buffers pen input for Onyx stroke replay.
+import { OnyxPenReplay } from "../onyx/replay";
 
 /**
  * Routes pointer input like the Boox Notes app:
@@ -62,8 +64,11 @@ export class InputRouter {
   private listeners: Array<[EventTarget, string, EventListener, AddEventListenerOptions | undefined]> = [];
   /** When the pen (or mouse/finger) last wrote, erased or selected (performance.now()). */
   lastActivity = 0;
+  // onyx-ink: one replay coordinator per input surface.
+  private onyx: OnyxPenReplay;
 
   constructor(private s: InkSurface) {
+    this.onyx = new OnyxPenReplay(s);
     const el = s.el;
     this.on(el, "pointerdown", (e) => this.onDown(e as PointerEvent), { passive: false });
     this.on(el, "pointermove", (e) => this.onMove(e as PointerEvent, false));
@@ -91,17 +96,21 @@ export class InputRouter {
 
   destroy(): void {
     this.cancel();
+    // onyx-ink: commit waiting strokes before releasing bridge listeners.
+    this.onyx.destroy();
     for (const [t, n, f, o] of this.listeners) t.removeEventListener(n, f, o);
     this.listeners = [];
   }
 
   /** A tool or gesture is running (do not redraw everything now). */
   get busy(): boolean {
-    return !!this.session || !!this.gesture;
+    return !!this.session || !!this.gesture || this.onyx.busy;
   }
 
   /** Stop whatever is running (page turn, undo, …). */
   cancel(): void {
+    // onyx-ink: waiting strokes must not be lost during navigation or teardown.
+    this.onyx.flush();
     if (this.session) {
       const sess = this.session;
       this.session = null;
@@ -229,6 +238,17 @@ export class InputRouter {
         return;
       }
     }
+    // onyx-ink: hold the first point until the companion stroke is matched or times out.
+    if (this.onyx.begin(e, tool, rect, this.point(e))) {
+      this.rect = rect;
+      this.lastActivity = performance.now();
+      try {
+        this.s.el.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     this.startSession(e, tool, rect);
   }
 
@@ -243,6 +263,11 @@ export class InputRouter {
 
   private onMove(e: PointerEvent, raw: boolean): void {
     if (e.pointerType === "pen") this.lastPenTime = performance.now();
+    // onyx-ink: keep palm rejection timing while buffering rather than drawing.
+    if (this.onyx.move(e, raw, () => this.points(e))) {
+      this.lastActivity = performance.now();
+      return;
+    }
     if (this.mousePan && e.pointerId === this.mousePan.pointer) {
       const v = this.s.view;
       this.s.view = { ...v, ox: this.mousePan.ox + e.clientX - this.mousePan.x, oy: this.mousePan.oy + e.clientY - this.mousePan.y };
@@ -280,6 +305,11 @@ export class InputRouter {
       if (Math.hypot(e.clientX - l.x, e.clientY - l.y) < TAP_PX) this.s.host.openLink(l.target, e.ctrlKey || e.metaKey);
       return;
     }
+    // onyx-ink: pointerup starts the matcher rather than committing a second stroke.
+    if (this.onyx.end(e, this.point(e))) {
+      this.lastActivity = performance.now();
+      return;
+    }
     if (this.session && e.pointerId === this.sessionPointer) {
       const sess = this.session;
       this.session = null;
@@ -297,6 +327,8 @@ export class InputRouter {
   }
 
   private onCancel(e: PointerEvent): void {
+    // onyx-ink: pointercancel is a commit in bridge mode, like the upstream pen path.
+    if (this.onyx.end(e, null)) return;
     if (this.session && e.pointerId === this.sessionPointer) {
       const sess = this.session;
       this.session = null;

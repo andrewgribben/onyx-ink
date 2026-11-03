@@ -82,6 +82,11 @@ export interface InkSettings {
   // onyx-ink: connection settings for the local Boox companion.
   onyxBridge: OnyxBridgeMode;
   onyxPort: number;
+  // onyx-ink: replay matching and coordinate calibration for the companion.
+  onyxFallbackMs: number;
+  onyxMatchWindowMs: number;
+  onyxCalibrationX: number;
+  onyxCalibrationY: number;
 
   // ---- display ----
   einkMode: EinkMode;
@@ -148,6 +153,10 @@ export const DEFAULT_SETTINGS: InkSettings = {
   // onyx-ink: default to Android-only automatic connection.
   onyxBridge: "auto",
   onyxPort: 8765,
+  onyxFallbackMs: 350,
+  onyxMatchWindowMs: 600,
+  onyxCalibrationX: 0,
+  onyxCalibrationY: 0,
 
   einkMode: "auto",
   bookmarkPosition: "top",
@@ -231,6 +240,13 @@ export function loadSettings(raw: unknown): InkSettings {
     // onyx-ink: invalid ports fall back instead of silently selecting another port.
     onyxBridge: oneOf(r.onyxBridge, ["auto", "on", "off"] as const, d.onyxBridge),
     onyxPort: typeof r.onyxPort === "number" && Number.isInteger(r.onyxPort) && r.onyxPort >= 1 && r.onyxPort <= 65535 ? r.onyxPort : d.onyxPort,
+    // onyx-ink: validate replay timings and finite CSS-pixel calibration values.
+    onyxFallbackMs: typeof r.onyxFallbackMs === "number" && Number.isInteger(r.onyxFallbackMs) &&
+      r.onyxFallbackMs >= 50 && r.onyxFallbackMs <= 5000 ? r.onyxFallbackMs : d.onyxFallbackMs,
+    onyxMatchWindowMs: typeof r.onyxMatchWindowMs === "number" && Number.isInteger(r.onyxMatchWindowMs) &&
+      r.onyxMatchWindowMs >= 100 && r.onyxMatchWindowMs <= 5000 ? r.onyxMatchWindowMs : d.onyxMatchWindowMs,
+    onyxCalibrationX: numberIn(r.onyxCalibrationX, -200, 200, d.onyxCalibrationX),
+    onyxCalibrationY: numberIn(r.onyxCalibrationY, -200, 200, d.onyxCalibrationY),
 
     einkMode: oneOf(r.einkMode, ["auto", "on", "off"] as const, d.einkMode),
     bookmarkPosition: oneOf(r.bookmarkPosition, ["top", "middle", "bottom"] as const, d.bookmarkPosition),

@@ -4,8 +4,11 @@ import { Notice, Platform } from "obsidian";
 import type InkNotebookPlugin from "../main";
 import { OnyxBridge } from "./bridge";
 import { OnyxDiagnostics } from "./diagnostics";
+import { setOnyxBridge, setOnyxSettings } from "./state";
+export { onyxBridge, onyxSettings } from "./state";
 
 export function setupOnyx(plugin: InkNotebookPlugin): void {
+  setOnyxSettings(plugin.settings);
   const createBridge = (): OnyxBridge => new OnyxBridge(
     plugin.settings.onyxPort,
     plugin.settings.onyxBridge,
@@ -15,9 +18,12 @@ export function setupOnyx(plugin: InkNotebookPlugin): void {
     (message) => new Notice(message),
   );
   let bridge = createBridge();
+  setOnyxBridge(bridge);
   const restart = (): void => {
     bridge.destroy();
     bridge = createBridge();
+    setOnyxBridge(bridge);
+    window.dispatchEvent(new Event("onyx-bridge-change"));
   };
   plugin.addCommand({
     id: "toggle-onyx-bridge",
@@ -34,5 +40,10 @@ export function setupOnyx(plugin: InkNotebookPlugin): void {
     name: "Show Onyx bridge diagnostics",
     callback: () => new OnyxDiagnostics(plugin.app, bridge, plugin.manifest.id).open(),
   });
-  plugin.register(() => bridge.destroy());
+  plugin.register(() => {
+    bridge.destroy();
+    setOnyxBridge(null);
+    setOnyxSettings(null);
+    window.dispatchEvent(new Event("onyx-bridge-change"));
+  });
 }

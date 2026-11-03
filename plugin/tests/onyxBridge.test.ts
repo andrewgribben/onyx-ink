@@ -32,13 +32,22 @@ describe("Onyx bridge", () => {
     const socket = new FakeSocket();
     const bridge = new OnyxBridge(8765, "on", "2.3.2", () => socket, true);
     const listener = vi.fn();
+    const change = vi.fn();
     bridge.onStroke(listener);
+    bridge.onChange(change);
     socket.open();
     expect(JSON.parse(socket.sent[0])).toEqual({ type: "hello", v: 2, app: "ink-notebook-onyx", version: "2.3.2" });
     socket.frame(stroke);
     expect(listener).toHaveBeenCalledOnce();
     expect(bridge.stats.rx).toBe(1);
     expect(bridge.events.at(-1)?.summary).toContain("9");
+    socket.frame('{"type":"state","v":2,"raw":"enabled"}');
+    bridge.send({ type: "region", rect: [0, 0, 10, 10], exclude: [] });
+    expect(bridge.state).toBe("active");
+    expect(change).toHaveBeenLastCalledWith("active");
+    bridge.recordOffset(2, 4);
+    bridge.recordOffset(4, 8);
+    expect(bridge.stats).toMatchObject({ offsetX: 3, offsetY: 6, offsetSamples: 2 });
     bridge.destroy();
   });
 

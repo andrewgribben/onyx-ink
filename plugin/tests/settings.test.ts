@@ -35,11 +35,16 @@ describe("recognition settings", () => {
   });
 
   // onyx-ink: validate persisted companion settings at the normalisation boundary.
-  it("validates the Onyx bridge mode and port", () => {
+  it("validates Onyx bridge settings", () => {
     expect(loadSettings({}).onyxBridge).toBe("auto");
     expect(loadSettings({}).onyxPort).toBe(8765);
     expect(loadSettings({ onyxBridge: "on", onyxPort: 9000 })).toMatchObject({ onyxBridge: "on", onyxPort: 9000 });
     expect(loadSettings({ onyxBridge: "sometimes", onyxPort: 0 })).toMatchObject({ onyxBridge: "auto", onyxPort: 8765 });
     expect(loadSettings({ onyxPort: 2.5 })).toMatchObject({ onyxPort: 8765 });
+    expect(loadSettings({})).toMatchObject({ onyxFallbackMs: 350, onyxMatchWindowMs: 600, onyxCalibrationX: 0, onyxCalibrationY: 0 });
+    expect(loadSettings({ onyxFallbackMs: 50, onyxMatchWindowMs: 5000, onyxCalibrationX: -200, onyxCalibrationY: 200 }))
+      .toMatchObject({ onyxFallbackMs: 50, onyxMatchWindowMs: 5000, onyxCalibrationX: -200, onyxCalibrationY: 200 });
+    expect(loadSettings({ onyxFallbackMs: 49, onyxMatchWindowMs: 1.5, onyxCalibrationX: Infinity, onyxCalibrationY: 201 }))
+      .toMatchObject({ onyxFallbackMs: 350, onyxMatchWindowMs: 600, onyxCalibrationX: 0, onyxCalibrationY: 200 });
   });
 });

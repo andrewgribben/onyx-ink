@@ -25,6 +25,8 @@ export class OnyxDiagnostics extends Modal {
     });
     const stats = Object.entries(this.bridge.stats).map(([key, value]) => `${key} ${value}`).join(", ");
     contentEl.createEl("p", { text: `Stats: ${stats}` });
+    const { matched, fallbacks, penStrokes } = this.bridge.stats;
+    contentEl.createEl("p", { text: `matched + fallbacks = ${matched + fallbacks} of ${penStrokes} pen strokes` });
     for (const event of [...this.bridge.events].reverse()) {
       contentEl.createEl("p", { text: `${new Date(event.time).toLocaleTimeString()} ${event.kind}: ${event.summary}` });
     }

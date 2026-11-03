@@ -19,7 +19,10 @@ export class OnyxBridge {
   state: BridgeState = "disconnected";
   hello: Extract<CompanionMessage, { type: "hello" }> | null = null;
   raw: Extract<CompanionMessage, { type: "state" }> ["raw"] | "" = "";
-  readonly stats = { rx: 0, matched: 0, fallbacks: 0, orphans: 0, errors: 0 };
+  readonly stats = {
+    rx: 0, matched: 0, fallbacks: 0, orphans: 0, errors: 0, penStrokes: 0, late: 0,
+    offsetX: 0, offsetY: 0, offsetSamples: 0,
+  };
   readonly events: BridgeEvent[] = [];
   readonly frames: string[] = [];
   private socket: Socket | null = null;
@@ -28,6 +31,7 @@ export class OnyxBridge {
   private killed = false;
   private sentRegion = false;
   private listeners = new Set<(message: CompanionStroke) => void>();
+  private changeListeners = new Set<(state: BridgeState) => void>();
 
   constructor(
     private port: number,
@@ -45,9 +49,20 @@ export class OnyxBridge {
     return () => this.listeners.delete(listener);
   }
 
-  recordOutcome(kind: "matched" | "fallbacks" | "orphans"): void {
+  onChange(listener: (state: BridgeState) => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
+  }
+
+  recordOutcome(kind: "matched" | "fallbacks" | "orphans" | "late"): void {
     this.stats[kind]++;
     this.event(kind, kind);
+  }
+
+  recordOffset(x: number, y: number): void {
+    const n = ++this.stats.offsetSamples;
+    this.stats.offsetX += (x - this.stats.offsetX) / n;
+    this.stats.offsetY += (y - this.stats.offsetY) / n;
   }
 
   send(message: PluginMessage): void {
@@ -69,7 +84,7 @@ export class OnyxBridge {
     this.timer = null;
     this.socket?.close();
     this.socket = null;
-    this.state = "disconnected";
+    this.setState("disconnected");
   }
 
   private connect(): void {
@@ -79,7 +94,7 @@ export class OnyxBridge {
       this.socket = socket;
       socket.onopen = () => {
         this.retry = 1000;
-        this.state = "connected";
+        this.setState("connected");
         this.send({ type: "hello", v: 2, app: "ink-notebook-onyx", version: this.version });
       };
       socket.onmessage = (event) => this.receive(event.data);
@@ -89,7 +104,7 @@ export class OnyxBridge {
       };
       socket.onclose = () => {
         if (this.socket === socket) this.socket = null;
-        this.state = "disconnected";
+        this.setState("disconnected");
         this.scheduleReconnect();
       };
     } catch {
@@ -128,8 +143,14 @@ export class OnyxBridge {
 
   private updateState(): void {
     if (this.state === "disconnected") return;
-    if (this.raw === "paused") this.state = "paused";
-    else this.state = this.raw === "enabled" && this.sentRegion ? "active" : "connected";
+    if (this.raw === "paused") this.setState("paused");
+    else this.setState(this.raw === "enabled" && this.sentRegion ? "active" : "connected");
+  }
+
+  private setState(state: BridgeState): void {
+    if (this.state === state) return;
+    this.state = state;
+    for (const listener of this.changeListeners) listener(state);
   }
 
   private scheduleReconnect(): void {
@@ -160,7 +181,7 @@ export class OnyxBridge {
     this.timer = null;
     this.socket?.close();
     this.socket = null;
-    this.state = "disconnected";
+    this.setState("disconnected");
     this.notify(`Onyx bridge disabled for this session. ${reason}`);
   }
 }
