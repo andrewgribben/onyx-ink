@@ -1,5 +1,7 @@
 # Ink Notebook for Obsidian
 
+> Modified by Andrew Gribben (2026) as **Ink Notebook (Onyx)**, plugin id `ink-notebook-onyx`, part of the Onyx Ink fork: low-latency Boox pen input via the Onyx Ink Companion app. Upstream: [stefanmayer06/Obsidian-writing-for-eink](https://github.com/stefanmayer06/Obsidian-writing-for-eink). Licence unchanged: AGPL-3.0-or-later.
+
 **Handwritten notebooks in Obsidian that feel like the Boox Notes app – made for e‑ink tablets such as the Onyx Boox Note Air.** Write with the pen on paper pages, flip to the **Text** page and read the same notes as Markdown: handwriting transcribed, drawings shown live, links working like everywhere else in Obsidian.
 
 Ink Notebook has its own pen engine. It draws every stroke the moment the pen moves – nothing is redrawn while you write – so it stays fast on e‑ink screens and on pages full of writing. There is nothing else to install.

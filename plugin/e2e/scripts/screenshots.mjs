@@ -56,7 +56,7 @@ await ev(() => {
       }
       throw new Error(`timeout waiting for ${label} (last: ${last})`);
     },
-    plugin: () => app.plugins.plugins["ink-notebook"],
+    plugin: () => app.plugins.plugins["ink-notebook-onyx"],
     view: () => app.workspace.getMostRecentLeaf()?.view,
     surface: () => app.workspace.getMostRecentLeaf()?.view?.surface,
     read: (p) => app.vault.read(app.vault.getAbstractFileByPath(p)),
@@ -215,7 +215,7 @@ async function remove(...paths) {
 /** Create an ink page with the "New ink page" command, named `name`. */
 async function newInkPage(name) {
   await setSettings({ askForPageName: true });
-  await ev(() => app.commands.executeCommandById("ink-notebook:new-page"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:new-page"));
   await ev(async (name) => {
     const input = await __t.waitFor(() => document.querySelector(".modal.ink-modal input.ink-wide-input"), 5000, "name prompt");
     input.value = name;
@@ -570,7 +570,7 @@ scenes.pdf = async () => {
   fs.writeFileSync(path.join(VAULT, "Docs", "Companion planting.pdf"), await doc.save());
   await sleep(1500);
 
-  await ev(() => app.commands.executeCommandById("ink-notebook:annotate-pdf"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:annotate-pdf"));
   await page.waitForSelector(".prompt-input", { timeout: 5000 });
   await page.fill(".prompt-input", "Companion planting.pdf");
   await page.keyboard.press("Enter");
@@ -664,7 +664,7 @@ scenes.flowchart = async () => {
   await remove("Ink/Attachments/Watering.ink.md", "Ink/Watering.md");
   await newInkPage("Watering");
   await ev(() => __t.surface().setBackground({ kind: "paper", paper: { style: "dots", spacing: "normal", color: "white", orientation: "portrait" } }));
-  await ev(() => app.commands.executeCommandById("ink-notebook:object-library"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:object-library"));
   const panel = ".workspace-leaf.mod-active .ink-library-panel";
   await page.click(`${panel} .ink-library-source[aria-label='Flowchart']`);
   await page.waitForSelector(`${panel} .ink-library-tile[aria-label='Process']`, { timeout: 5000 });
@@ -755,7 +755,7 @@ scenes.mermaid = async () => {
     const ed = app.workspace.activeEditor.editor;
     ed.setCursor(ed.offsetToPos(ed.getValue().indexOf("subgraph Watering")));
   });
-  await ev(() => app.commands.executeCommandById("ink-notebook:add-mermaid"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:add-mermaid"));
   await page.waitForSelector(".ink-mermaid-modal .ink-mermaid-code", { timeout: 5000 });
   await page.waitForFunction(() => /shapes/.test(document.querySelector(".ink-mermaid-status")?.textContent ?? ""), null, { timeout: 5000 });
   await sleep(800);
@@ -766,7 +766,7 @@ scenes.mermaid = async () => {
 
   await newInkPage("Smart garden");
   await ev(() => __t.surface().setBackground({ kind: "paper", paper: { style: "blank", spacing: "normal", color: "white", orientation: "portrait" } }));
-  await ev(() => app.commands.executeCommandById("ink-notebook:object-library"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:object-library"));
   const panel = ".workspace-leaf.mod-active .ink-library-panel";
   await page.click(`${panel} .ink-library-source[aria-label='Mermaid']`);
   await page.waitForSelector(`${panel} .ink-library-tile[aria-label='Watering logic']`, { timeout: 5000 });

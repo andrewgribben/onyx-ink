@@ -113,7 +113,7 @@ await ev(() => {
       }
       throw new Error(`timeout waiting for ${label} (last: ${last})`);
     },
-    plugin: () => app.plugins.plugins["ink-notebook"],
+    plugin: () => app.plugins.plugins["ink-notebook-onyx"],
     view: () => app.workspace.getMostRecentLeaf()?.view,
     surface: () => app.workspace.getMostRecentLeaf()?.view?.surface,
     read: (p) => app.vault.read(app.vault.getAbstractFileByPath(p)),
@@ -243,7 +243,7 @@ steps.setup = async () => {
 steps.createPage = async () => {
   console.log("\n▶ create an ink page");
   await setSettings({ askForPageName: true });
-  await ev(() => app.commands.executeCommandById("ink-notebook:new-page"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:new-page"));
   // you name the page: the date and time is filled in, type over it
   const suggested = await ev(async () => {
     const input = await __t.waitFor(() => document.querySelector(".modal.ink-modal input.ink-wide-input"), 5000, "name prompt");
@@ -549,7 +549,7 @@ steps.pdf = async () => {
   fs.mkdirSync(path.join(VAULT, "Docs"), { recursive: true });
   fs.writeFileSync(path.join(VAULT, "Docs", "Slides.pdf"), await doc.save());
   await sleep(1500);
-  await ev(() => app.commands.executeCommandById("ink-notebook:annotate-pdf"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:annotate-pdf"));
   // the command asks for the PDF
   await page.waitForSelector(".prompt-input", { timeout: 5000 });
   await page.fill(".prompt-input", "Slides.pdf");
@@ -574,7 +574,7 @@ steps.pdf = async () => {
   await sleep(500);
   const m2 = await mapping();
   await pen(word(200, 200, 200, 40), { m: m2 });
-  await ev(() => app.commands.executeCommandById("ink-notebook:export-annotated-pdf"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:export-annotated-pdf"));
   const out = await ev(async () => {
     await __t.waitFor(() => app.vault.getAbstractFileByPath("Ink/Slides (annotated).pdf"), 15000, "export");
     return true;
@@ -674,7 +674,7 @@ steps.papers = async () => {
 
   // importing the same paper again opens it
   const before = await ev(() => app.vault.getFiles().length);
-  await ev(() => app.commands.executeCommandById("ink-notebook:import-arxiv"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:import-arxiv"));
   await waitCards(20, "popular papers");
   await page.fill(".ink-arxiv-input", "https://arxiv.org/abs/2401.00001");
   await page.keyboard.press("Enter");
@@ -685,7 +685,7 @@ steps.papers = async () => {
   await closeModals();
   await openFile(state.drawing, "ink-notebook");
   await waitView("ink-notebook", state.drawing);
-  await ev(() => app.commands.executeCommandById("ink-notebook:import-arxiv"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:import-arxiv"));
   await waitCards(20, "popular papers");
   await page.fill(".ink-arxiv-input", "2401.00001");
   await page.keyboard.press("Enter");
@@ -728,9 +728,9 @@ steps.reload = async () => {
   await waitView("ink-notebook", state.drawing);
   await sleep(2500); // saved
   await ev(async () => {
-    await app.plugins.disablePlugin("ink-notebook");
+    await app.plugins.disablePlugin("ink-notebook-onyx");
     await new Promise((r) => setTimeout(r, 1000));
-    await app.plugins.enablePlugin("ink-notebook");
+    await app.plugins.enablePlugin("ink-notebook-onyx");
   });
   await sleep(2000);
   const info = await ev(async (d) => {
@@ -824,7 +824,7 @@ steps.notes = async () => {
     const leaf = app.workspace.getLeaf(false);
     await leaf.openFile(f);
     await __t.sleep(500);
-    app.commands.executeCommandById("ink-notebook:add-ink-to-note");
+    app.commands.executeCommandById("ink-notebook-onyx:add-ink-to-note");
     await __t.waitFor(() => leaf.view.getViewType() === "ink-notebook" && leaf.view.inkFile, 8000, "ink page");
     return { leaf: leaf.view.file?.path, text: await app.vault.read(f), drawing: p.pairs.drawingFor(f)?.path };
   });
@@ -883,7 +883,7 @@ steps.notes = async () => {
     // the command opens it on the ink page too
     await app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath("Welcome.md"));
     await __t.sleep(300);
-    app.commands.executeCommandById("ink-notebook:open-today-ink");
+    app.commands.executeCommandById("ink-notebook-onyx:open-today-ink");
     await __t.waitFor(() => __t.view()?.getViewType() === "ink-notebook" && __t.view().file?.path.startsWith("Journal/Attachments/"), 8000, "today");
     await dn.disable();
     return { leaf: leaf.view.file.path, drawing: note && p.pairs.drawingFor(note)?.path, inkFiles };
@@ -924,7 +924,7 @@ steps.migrate = async () => {
   fs.writeFileSync(path.join(VAULT, "Old", "Attachments", "Old page.excalidraw.md"), `---\nexcalidraw-plugin: parsed\nink-text: "[[Old/Old page]]"\n---\n# Excalidraw Data\n\n%%\n## Drawing\n\`\`\`compressed-json\n${compressed}\n\`\`\`\n%%`);
   fs.writeFileSync(path.join(VAULT, "Old", "Old page.md"), `---\nink-drawing: "[[Old/Attachments/Old page.excalidraw]]"\n---\n%% ink-notebook:start %%\n![[Old/Attachments/Old page.excalidraw#^area=region1|300]]\n%% ink-notebook:end v1 %%\n`);
   await sleep(2000);
-  await ev(() => app.commands.executeCommandById("ink-notebook:migrate-excalidraw"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:migrate-excalidraw"));
   await page.waitForSelector(".modal.ink-confirm button.mod-cta", { timeout: 5000 });
   await page.click(".modal.ink-confirm button.mod-cta");
   const info = await ev(async () => {
@@ -970,7 +970,7 @@ steps.flowchart = async () => {
   const file = "Flow/Attachments/Flow.ink.md";
   await openFile(file, "ink-notebook");
   await waitView("ink-notebook", file);
-  await ev(() => app.commands.executeCommandById("ink-notebook:object-library"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:object-library"));
   const panel = ".workspace-leaf.mod-active .ink-library-panel";
   await page.waitForSelector(`${panel} .ink-library-tile[aria-label='Process']`, { timeout: 5000 });
   const sources = await ev(() => [...document.querySelectorAll(".workspace-leaf.mod-active .ink-library-source")].map((b) => b.getAttribute("aria-label")));
@@ -1117,7 +1117,7 @@ steps.mermaid = async () => {
     const ed = app.workspace.activeEditor.editor;
     ed.setCursor(ed.offsetToPos(ed.getValue().indexOf("subgraph LCF")));
   });
-  await ev(() => app.commands.executeCommandById("ink-notebook:add-mermaid"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:add-mermaid"));
   await page.waitForSelector(".ink-mermaid-modal .ink-mermaid-code", { timeout: 5000 });
   await page.waitForFunction(() => /shapes/.test(document.querySelector(".ink-mermaid-status")?.textContent ?? ""), null, { timeout: 5000 });
   const pre = await ev(() => ({
@@ -1142,7 +1142,7 @@ steps.mermaid = async () => {
   const file = "Diagrams/Attachments/Diagrams.ink.md";
   await openFile(file, "ink-notebook");
   await waitView("ink-notebook", file);
-  await ev(() => app.commands.executeCommandById("ink-notebook:object-library"));
+  await ev(() => app.commands.executeCommandById("ink-notebook-onyx:object-library"));
   const panel = ".workspace-leaf.mod-active .ink-library-panel";
   await page.click(`${panel} .ink-library-source[aria-label='Mermaid']`);
   await page.waitForSelector(`${panel} .ink-library-tile[aria-label='Snakes and ladders']`, { timeout: 5000 });
