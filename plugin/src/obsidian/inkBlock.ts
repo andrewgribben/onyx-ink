@@ -21,6 +21,7 @@ export async function insertInkBlock(plugin: InkNotebookPlugin, editor: Editor, 
     const path = normalizePath(joinPath(folder, `${note.basename} handwriting ${n}.ink.md`));
     if (!plugin.app.vault.getAbstractFileByPath(path)) file = await plugin.app.vault.create(path, createInkBlockText());
   }
+  await indexed(plugin, file);
   const cursor = editor.getCursor();
   const line = editor.getLine(cursor.line);
   const before = line.slice(0, cursor.ch);
@@ -30,6 +31,22 @@ export async function insertInkBlock(plugin: InkNotebookPlugin, editor: Editor, 
   const prefix = before.trim() ? "\n\n" : previous.trim() ? "\n" : "";
   const suffix = after.trim() ? "\n\n" : next.trim() ? "\n" : "";
   editor.replaceRange(`${prefix}![[${file.basename}]]${suffix}`, cursor);
+}
+
+/** Waits (up to 2 s) until the metadata cache has the new file's frontmatter, so the embed renders as a live block. */
+function indexed(plugin: InkNotebookPlugin, file: TFile): Promise<void> {
+  if (plugin.app.metadataCache.getFileCache(file)?.frontmatter) return Promise.resolve();
+  return new Promise((resolve) => {
+    const ref = plugin.app.metadataCache.on("changed", (changed) => {
+      if (changed.path !== file.path) return;
+      plugin.app.metadataCache.offref(ref);
+      resolve();
+    });
+    window.setTimeout(() => {
+      plugin.app.metadataCache.offref(ref);
+      resolve();
+    }, 2000);
+  });
 }
 
 export class InkBlockChild extends MarkdownRenderChild {

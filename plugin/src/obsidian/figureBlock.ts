@@ -244,10 +244,10 @@ export function registerFigureBlocks(plugin: InkNotebookPlugin): void {
     ctx.addChild(new FigureChild(el, plugin, spec, ctx.sourcePath));
   });
   plugin.registerMarkdownCodeBlockProcessor("ink-notebook", (_source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
-    // onyx-ink: only embedded block pages become live writing surfaces.
+    // onyx-ink: block pages become live writing surfaces. (el is still detached here, so embed context can't be tested;
+    // block files open in the ink view anyway, so this only runs for embeds and hover previews.)
     const file = plugin.app.vault.getAbstractFileByPath(ctx.sourcePath);
-    if (file instanceof TFile && el.closest(".internal-embed, .markdown-embed") &&
-        plugin.app.metadataCache.getFileCache(file)?.frontmatter?.["ink-block"] === true) {
+    if (file instanceof TFile && plugin.app.metadataCache.getFileCache(file)?.frontmatter?.["ink-block"] === true) {
       ctx.addChild(new InkBlockChild(el, plugin, ctx.sourcePath));
       return;
     }
