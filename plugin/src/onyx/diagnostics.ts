@@ -23,7 +23,8 @@ export class OnyxDiagnostics extends Modal {
         ? `Companion: ${hello.app} ${hello.version}, ${hello.screen.w} × ${hello.screen.h}, pressureMax ${hello.pressureMax}`
         : "Companion: none",
     });
-    contentEl.createEl("p", { text: `Stats: ${JSON.stringify(this.bridge.stats)}` });
+    const stats = Object.entries(this.bridge.stats).map(([key, value]) => `${key} ${value}`).join(", ");
+    contentEl.createEl("p", { text: `Stats: ${stats}` });
     for (const event of [...this.bridge.events].reverse()) {
       contentEl.createEl("p", { text: `${new Date(event.time).toLocaleTimeString()} ${event.kind}: ${event.summary}` });
     }
