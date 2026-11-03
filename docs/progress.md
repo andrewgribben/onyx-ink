@@ -47,7 +47,7 @@ Built 2026-11-03: plugin `06ff7af` + fix, companion `83a51a7` (0.4.0, several re
 - [~] Expand opened the same file in the ink view with the stroke. Edits there showing back in the block: needs device check.
 - [~] Bridge: the region follows the block (`[629,389,1885,798]`, then `[629,389,1885,1162]` after growing) with its controls excluded. Onyx ink inside the block with the pen: needs device check.
 - [ ] Reading view not checked yet.
-- Harness 2026-11-03 after M5: see commit log; `npm run check` 301 tests.
+- Harness 2026-11-03 after M5: 49 pass, 0 fail; `npm run check` 301 tests.
 
 ## Needs device check
 Owner checks, batched (2026-11-03):
