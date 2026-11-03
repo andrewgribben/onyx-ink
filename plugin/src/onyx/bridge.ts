@@ -25,6 +25,9 @@ export class OnyxBridge {
   };
   readonly events: BridgeEvent[] = [];
   readonly frames: string[] = [];
+  regionStatus = "not sent";
+  styleStatus = "not sent";
+  pauseReason = "";
   private socket: Socket | null = null;
   private retry = 1000;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -161,6 +164,10 @@ export class OnyxBridge {
       this.timer = null;
       this.connect();
     }, delay);
+  }
+
+  logEvent(kind: string, summary: string): void {
+    this.event(kind, summary);
   }
 
   private event(kind: string, summary: string): void {

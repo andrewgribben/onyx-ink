@@ -64,6 +64,7 @@ function create() {
   } as any;
   const replay = new OnyxPenReplay(surface);
   socket.frame({ type: "state", v: 2, raw: "enabled" });
+  bridge.send({ type: "region", rect: [0, 0, 200, 200], exclude: [] });
   return { bridge, replay, socket };
 }
 

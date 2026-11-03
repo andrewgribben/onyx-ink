@@ -17,6 +17,9 @@ export class OnyxDiagnostics extends Modal {
     contentEl.empty();
     contentEl.createEl("h2", { text: "Onyx bridge diagnostics" });
     contentEl.createEl("p", { text: `State: ${this.bridge.state}` });
+    contentEl.createEl("p", { text: `Region: ${this.bridge.regionStatus}` });
+    contentEl.createEl("p", { text: `Style: ${this.bridge.styleStatus}` });
+    contentEl.createEl("p", { text: `Pause: ${this.bridge.pauseReason || "none"}` });
     const hello = this.bridge.hello;
     contentEl.createEl("p", {
       text: hello

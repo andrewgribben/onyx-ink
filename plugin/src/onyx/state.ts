@@ -21,3 +21,7 @@ export function setOnyxBridge(bridge: OnyxBridge | null): void {
 export function setOnyxSettings(settings: InkSettings | null): void {
   currentSettings = settings;
 }
+
+export function onyxSurfaceChanged(): void {
+  window.dispatchEvent(new Event("onyx-surface-change"));
+}

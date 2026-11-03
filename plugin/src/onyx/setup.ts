@@ -4,6 +4,7 @@ import { Notice, Platform } from "obsidian";
 import type InkNotebookPlugin from "../main";
 import { OnyxBridge } from "./bridge";
 import { OnyxDiagnostics } from "./diagnostics";
+import { OnyxRegion } from "./region";
 import { setOnyxBridge, setOnyxSettings } from "./state";
 export { onyxBridge, onyxSettings } from "./state";
 
@@ -19,10 +20,14 @@ export function setupOnyx(plugin: InkNotebookPlugin): void {
   );
   let bridge = createBridge();
   setOnyxBridge(bridge);
+  let region = Platform.isAndroidApp && plugin.settings.onyxBridge !== "off" ? new OnyxRegion(plugin.app) : null;
   const restart = (): void => {
+    region?.destroy();
+    region = null;
     bridge.destroy();
     bridge = createBridge();
     setOnyxBridge(bridge);
+    if (Platform.isAndroidApp && plugin.settings.onyxBridge !== "off") region = new OnyxRegion(plugin.app);
     window.dispatchEvent(new Event("onyx-bridge-change"));
   };
   plugin.addCommand({
@@ -41,6 +46,8 @@ export function setupOnyx(plugin: InkNotebookPlugin): void {
     callback: () => new OnyxDiagnostics(plugin.app, bridge, plugin.manifest.id).open(),
   });
   plugin.register(() => {
+    region?.destroy();
+    region = null;
     bridge.destroy();
     setOnyxBridge(null);
     setOnyxSettings(null);

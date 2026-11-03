@@ -39,6 +39,8 @@ import type { Segment } from "../core/ink/pens";
 import { InputRouter } from "./input";
 import { SelectionOverlay } from "./selection";
 import { TextEditor } from "./textEditor";
+// onyx-ink: region and style sync follow surface changes.
+import { onyxSurfaceChanged } from "../onyx/state";
 import {
   DEFAULT_SURFACE_SETTINGS,
   DEFAULT_TOOL_STATE,
@@ -382,6 +384,8 @@ export class InkSurface {
     this.renderAll();
     this.selectionOverlay.update();
     this.textEditor.position();
+    // onyx-ink: keep the companion region aligned after surface sizing.
+    onyxSurfaceChanged();
   }
 
   private computeFit(page: Page): ViewTransform {
@@ -434,6 +438,8 @@ export class InkSurface {
     this.renderAll();
     this.selectionOverlay.update();
     this.textEditor.position();
+    // onyx-ink: keep the companion region and pen width aligned after zoom or pan.
+    onyxSurfaceChanged();
   }
 
   zoomAt(k: number, cx: number, cy: number): void {
@@ -447,6 +453,8 @@ export class InkSurface {
     this.renderAll();
     this.selectionOverlay.update();
     this.textEditor.position();
+    // onyx-ink: keep overlay pen style aligned after resetting zoom.
+    onyxSurfaceChanged();
   }
 
   /** Toggle between the whole page and its width. */
@@ -627,6 +635,8 @@ export class InkSurface {
 
   private emitPage(): void {
     this.host.pageChanged?.(this.pageIdx, this.doc.pages.length);
+    // onyx-ink: page changes can also change the visible writing surface.
+    onyxSurfaceChanged();
   }
 
   emitHistory(): void {
@@ -736,6 +746,8 @@ export class InkSurface {
     if (changedTool && this.tools.tool !== "stamp") this.stamp = null;
     if (changedTool && this.tools.tool !== "lasso") this.setSelection(EMPTY_SELECTION);
     this.host.toolChanged?.(this.tools);
+    // onyx-ink: tool, width and colour changes update companion pause and style.
+    onyxSurfaceChanged();
   }
 
   // ------------------------------------------------------------------ fills
@@ -812,6 +824,8 @@ export class InkSurface {
     this.stamp = { ...stamp, items };
     this.tools = { ...this.tools, tool: "stamp" };
     this.host.toolChanged?.(this.tools);
+    // onyx-ink: pause the overlay when a placement tool is selected.
+    onyxSurfaceChanged();
   }
 
   /** The items being placed, as they will look (in the pen colour and thickness, for the built-in shapes). */

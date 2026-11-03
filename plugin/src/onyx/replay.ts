@@ -25,21 +25,11 @@ export class OnyxPenReplay {
   private waiting = new Map<string, { tool: "pen" | "marker"; points: InputPt[]; rect: DOMRect; downTime: number; durationMs: number }>();
   private activeUntil = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private regionTimer: ReturnType<typeof setTimeout> | null = null;
-  private resize = () => this.scheduleRegion();
-  private bridgeChanged = () => {
-    this.subscribe();
-    this.sendRegion();
-  };
   private unsubscribeStroke: (() => void) | null = null;
-  private unsubscribeChange: (() => void) | null = null;
-  private lastRegion = false;
   // The pen reuses one pointerId for every stroke, so waiting strokes need their own ids.
   private nextId = 0;
 
   constructor(private s: InkSurface) {
-    window.addEventListener("resize", this.resize);
-    window.addEventListener("onyx-bridge-change", this.bridgeChanged);
     this.subscribe();
   }
 
@@ -104,21 +94,13 @@ export class OnyxPenReplay {
   destroy(): void {
     this.flush();
     this.clearTimer();
-    if (this.regionTimer !== null) clearTimeout(this.regionTimer);
-    this.regionTimer = null;
-    window.removeEventListener("resize", this.resize);
-    window.removeEventListener("onyx-bridge-change", this.bridgeChanged);
     this.unsubscribeStroke?.();
-    this.unsubscribeChange?.();
-    if (this.lastRegion) onyxBridge()?.send({ type: "region", rect: null, exclude: [] });
-    this.lastRegion = false;
   }
 
   private subscribe(): void {
     const bridge = onyxBridge();
     if (!bridge) return;
     this.unsubscribeStroke?.();
-    this.unsubscribeChange?.();
     this.unsubscribeStroke = bridge.onStroke((stroke) => {
       const settings = onyxSettings();
       if (!settings) return;
@@ -129,14 +111,6 @@ export class OnyxPenReplay {
       this.matcher.addOnyxStroke(onyx);
       this.pollSoon();
     });
-    this.unsubscribeChange = bridge.onChange((state) => {
-      if (state === "connected" || state === "active") this.sendRegion();
-      else if (this.lastRegion) {
-        bridge.send({ type: "region", rect: null, exclude: [] });
-        this.lastRegion = false;
-      }
-    });
-    if (bridge.state === "connected" || bridge.state === "active") this.sendRegion();
   }
 
   private convert(stroke: Parameters<typeof onyxToClientPoints>[0], t0: number, durationMs?: number): InputPt[] {
@@ -226,29 +200,6 @@ export class OnyxPenReplay {
     const a = clientToScreen(box.x, box.y, 0, 0, dpr, offset.x, offset.y, calibration);
     const b = clientToScreen(box.x + box.w, box.y + box.h, 0, 0, dpr, offset.x, offset.y, calibration);
     onyxBridge()?.send({ type: "refresh", rect: [a.x, a.y, b.x, b.y] });
-  }
-
-  private scheduleRegion(): void {
-    if (this.regionTimer !== null) clearTimeout(this.regionTimer);
-    this.regionTimer = setTimeout(() => {
-      this.regionTimer = null;
-      this.sendRegion();
-    }, 100);
-  }
-
-  // shortcut: whole surface, no excludes, last surface wins; M3 replaces this with region.ts.
-  private sendRegion(): void {
-    const bridge = onyxBridge();
-    if (!bridge || (bridge.state !== "connected" && bridge.state !== "active")) return;
-    const rect = this.s.el.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const settings = onyxSettings();
-    const offset = webviewOffset({ width: screen.width, height: screen.height }, { width: innerWidth, height: innerHeight });
-    const calibration = { x: settings?.onyxCalibrationX ?? 0, y: settings?.onyxCalibrationY ?? 0 };
-    const a = clientToScreen(rect.left, rect.top, 0, 0, dpr, offset.x, offset.y, calibration);
-    const b = clientToScreen(rect.right, rect.bottom, 0, 0, dpr, offset.x, offset.y, calibration);
-    bridge.send({ type: "region", rect: [a.x, a.y, b.x, b.y], exclude: [] });
-    this.lastRegion = true;
   }
 
   private clearTimer(): void {
